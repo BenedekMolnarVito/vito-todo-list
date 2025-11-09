@@ -80,17 +80,31 @@ dotnet workload install maui-android
 
 2. Restore dependencies:
 ```bash
-dotnet restore
+dotnet restore vito-todo-list.sln
 ```
 
 3. Build the project:
 ```bash
-dotnet build -c Release
+dotnet build vito-todo-list.sln -c Release
 ```
 
 4. Deploy to device/emulator:
 ```bash
-dotnet build -t:Run -f net9.0-android35.0
+dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
+```
+
+
+5. (Optional) Clean project:
+```bash
+dotnet clean vito-todo-list.sln
+```
+
+6. (Optional) Full clean rebuild:
+```bash
+dotnet clean vito-todo-list.sln;
+dotnet restore vito-todo-list.sln;
+dotnet build vito-todo-list.sln -c Release;
+dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
 ```
 
 ## Usage

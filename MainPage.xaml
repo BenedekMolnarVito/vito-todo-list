@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="VitoTodoList.MainPage"
+             x:Name="ThisPage"
              Title="My Todo List">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="10">
@@ -33,7 +34,7 @@
                             <SwipeItems>
                                 <SwipeItem Text="Delete"
                                           BackgroundColor="Red"
-                                          Command="{Binding Source={x:Reference MainPage}, Path=DeleteCommand}"
+                                          Command="{Binding Source={x:Reference ThisPage}, Path=DeleteCommand}"
                                           CommandParameter="{Binding .}"/>
                             </SwipeItems>
                         </SwipeView.RightItems>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/todo_item_text"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:textSize="14sp"
+    android:textColor="#212121"
+    android:padding="4dp"
+    android:maxLines="10"
+    android:ellipsize="none"
+    android:singleLine="false" />

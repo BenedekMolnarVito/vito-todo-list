@@ -46,7 +46,7 @@ namespace VitoTodoList.Platforms.Android.Widgets
 
                     foreach (var todo in todos.Take(10)) // Limit to 10 items for widget
                     {
-                        var itemView = new RemoteViews(context.PackageName, global::Android.Resource.Layout.SimpleListItem1);
+                        var itemView = new RemoteViews(context.PackageName, Resource.Layout.widget_todo_item);
                         
                         // Format the text with bullet point and optional deadline
                         string itemText = $"• {todo.Title}";
@@ -58,8 +58,6 @@ namespace VitoTodoList.Platforms.Android.Widgets
                             itemText += $" - {deadline:MMM dd, HH:mm}";
                         }
                         
-                        itemView.SetTextViewText(global::Android.Resource.Id.Text1, itemText);
-                        
                         // Set text color based on whether it has a deadline
                         if (todo.Deadline.HasValue)
                         {
@@ -69,17 +67,18 @@ namespace VitoTodoList.Platforms.Android.Widgets
                             if (deadlineStart > 0)
                             {
                                 spannable.SetSpan(
-                                    new global::Android.Text.Style.ForegroundColorSpan(global::Android.Graphics.Color.Red),
+                                    new global::Android.Text.Style.ForegroundColorSpan(global::Android.Graphics.Color.ParseColor("#F44336")),
                                     deadlineStart,
                                     itemText.Length,
                                     global::Android.Text.SpanTypes.ExclusiveExclusive
                                 );
                             }
-                            itemView.SetTextViewText(global::Android.Resource.Id.Text1, spannable);
+                            itemView.SetTextViewText(Resource.Id.todo_item_text, spannable);
                         }
                         else
                         {
-                            itemView.SetTextColor(global::Android.Resource.Id.Text1, global::Android.Graphics.Color.Black);
+                            itemView.SetTextViewText(Resource.Id.todo_item_text, itemText);
+                            itemView.SetTextColor(Resource.Id.todo_item_text, global::Android.Graphics.Color.ParseColor("#212121"));
                         }
                         
                         views.AddView(Resource.Id.widget_content, itemView);

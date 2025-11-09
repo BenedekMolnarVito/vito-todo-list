@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VitoTodoList.MainPage"
+             Title="My Todo List">
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="10">
+        <!-- Header with action buttons -->
+        <HorizontalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
+            <Button Text="Add Todo" 
+                    Clicked="OnAddTodoClicked" 
+                    BackgroundColor="{StaticResource Primary}"
+                    HorizontalOptions="Start"/>
+            <Button Text="Export" 
+                    Clicked="OnExportClicked" 
+                    HorizontalOptions="Start"/>
+            <Button Text="Import" 
+                    Clicked="OnImportClicked" 
+                    HorizontalOptions="Start"/>
+            <Button Text="Share" 
+                    Clicked="OnShareClicked" 
+                    HorizontalOptions="Start"/>
+        </HorizontalStackLayout>
+
+        <!-- Todo List -->
+        <CollectionView Grid.Row="1" 
+                        x:Name="TodoListView"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <SwipeView>
+                        <SwipeView.RightItems>
+                            <SwipeItems>
+                                <SwipeItem Text="Delete"
+                                          BackgroundColor="Red"
+                                          Command="{Binding Source={x:Reference MainPage}, Path=DeleteCommand}"
+                                          CommandParameter="{Binding .}"/>
+                            </SwipeItems>
+                        </SwipeView.RightItems>
+                        
+                        <Frame Margin="5" Padding="10" BorderColor="LightGray">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <CheckBox Grid.Column="0" 
+                                         IsChecked="{Binding IsCompleted}"
+                                         CheckedChanged="OnCheckBoxChanged"/>
+                                
+                                <VerticalStackLayout Grid.Column="1" Margin="10,0" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}" 
+                                           FontSize="16" 
+                                           FontAttributes="Bold"
+                                           TextDecorations="{Binding IsCompleted, Converter={StaticResource BoolToTextDecorationConverter}}"/>
+                                    <Label Text="{Binding Description}" 
+                                           FontSize="12"
+                                           IsVisible="{Binding Description, Converter={StaticResource StringToBoolConverter}}"/>
+                                    <Label Text="{Binding Deadline, StringFormat='Due: {0:MMM dd, HH:mm}'}" 
+                                           FontSize="10"
+                                           TextColor="Orange"
+                                           IsVisible="{Binding Deadline, Converter={StaticResource HasValueConverter}}"/>
+                                </VerticalStackLayout>
+
+                                <Button Grid.Column="2" 
+                                       Text="Edit"
+                                       Clicked="OnEditTodoClicked"
+                                       CommandParameter="{Binding .}"
+                                       VerticalOptions="Center"/>
+                            </Grid>
+                        </Frame>
+                    </SwipeView>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Empty State -->
+        <VerticalStackLayout Grid.Row="1" 
+                            x:Name="EmptyState"
+                            VerticalOptions="Center" 
+                            HorizontalOptions="Center"
+                            IsVisible="False">
+            <Label Text="No todos yet!" 
+                   FontSize="20" 
+                   HorizontalTextAlignment="Center"/>
+            <Label Text="Tap 'Add Todo' to get started" 
+                   FontSize="14" 
+                   TextColor="Gray"
+                   HorizontalTextAlignment="Center"/>
+        </VerticalStackLayout>
+    </Grid>
+
+</ContentPage>

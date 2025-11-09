@@ -48,4 +48,9 @@
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
 	</ItemGroup>
 
+	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android35.0'">
+		<AndroidResource Include="Platforms\Android\Resources\**\*.xml" />
+		<AndroidResource Include="Platforms\Android\Resources\**\*.axml" />
+	</ItemGroup>
+
 </Project>

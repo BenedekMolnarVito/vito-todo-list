@@ -40,6 +40,46 @@ public partial class MainPage : ContentPage
         }
         TodoListView.ItemsSource = _todos;
         EmptyState.IsVisible = _todos.Count == 0;
+        UpdateWidget();
+    }
+
+    private void UpdateWidget()
+    {
+#if ANDROID
+        VitoTodoList.Platforms.Android.Widgets.WidgetUpdateHelper.UpdateWidgets();
+#endif
+    }
+
+    private async void OnMoveUpClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is TodoItem item)
+        {
+            var index = _todos.IndexOf(item);
+            if (index > 0)
+            {
+                var items = _todos.ToList();
+                items.RemoveAt(index);
+                items.Insert(index - 1, item);
+                await _database.UpdateOrderAsync(items);
+                await LoadTodosAsync();
+            }
+        }
+    }
+
+    private async void OnMoveDownClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is TodoItem item)
+        {
+            var index = _todos.IndexOf(item);
+            if (index < _todos.Count - 1)
+            {
+                var items = _todos.ToList();
+                items.RemoveAt(index);
+                items.Insert(index + 1, item);
+                await _database.UpdateOrderAsync(items);
+                await LoadTodosAsync();
+            }
+        }
     }
 
     private async void OnAddTodoClicked(object? sender, EventArgs e)
@@ -62,6 +102,7 @@ public partial class MainPage : ContentPage
             item.IsCompleted = e.Value;
             item.CompletedAt = e.Value ? DateTime.Now : null;
             await _database.SaveItemAsync(item);
+            UpdateWidget();
             await LoadTodosAsync();
         }
     }
@@ -72,6 +113,7 @@ public partial class MainPage : ContentPage
         if (confirm)
         {
             await _database.DeleteItemAsync(item);
+            UpdateWidget();
             await LoadTodosAsync();
         }
     }

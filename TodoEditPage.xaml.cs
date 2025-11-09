@@ -68,6 +68,11 @@ public partial class TodoEditPage : ContentPage
         }
 
         await _database.SaveItemAsync(item);
+        
+#if ANDROID
+        VitoTodoList.Platforms.Android.Widgets.WidgetUpdateHelper.UpdateWidgets();
+#endif
+        
         await Navigation.PopAsync();
     }
 

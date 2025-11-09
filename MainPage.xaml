@@ -58,11 +58,22 @@
                                            IsVisible="{Binding Deadline, Converter={StaticResource HasValueConverter}}"/>
                                 </VerticalStackLayout>
 
-                                <Button Grid.Column="2" 
-                                       Text="Edit"
-                                       Clicked="OnEditTodoClicked"
-                                       CommandParameter="{Binding .}"
-                                       VerticalOptions="Center"/>
+                                <HorizontalStackLayout Grid.Column="2" Spacing="5">
+                                    <Button Text="↑"
+                                           Clicked="OnMoveUpClicked"
+                                           CommandParameter="{Binding .}"
+                                           WidthRequest="40"
+                                           VerticalOptions="Center"/>
+                                    <Button Text="↓"
+                                           Clicked="OnMoveDownClicked"
+                                           CommandParameter="{Binding .}"
+                                           WidthRequest="40"
+                                           VerticalOptions="Center"/>
+                                    <Button Text="Edit"
+                                           Clicked="OnEditTodoClicked"
+                                           CommandParameter="{Binding .}"
+                                           VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
                             </Grid>
                         </Frame>
                     </SwipeView>

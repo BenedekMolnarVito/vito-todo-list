@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:VitoTodoList.Converters"
+             x:Class="VitoTodoList.MainPage"
+             Title="My Todos">
+    
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <local:BoolToTextDecorationConverter x:Key="BoolToTextDecoration" />
+            <local:HasValueConverter x:Key="HasValueConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" Padding="16">
+        <!-- Header with yellow sticky note feel -->
+        <Frame Grid.Row="0" Margin="0,0,0,16" Padding="16" BackgroundColor="{StaticResource PrimaryLight}">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <Label Grid.Column="0" Text="📝 Todo List" FontSize="24" FontAttributes="Bold" 
+                       VerticalOptions="Center" TextColor="{StaticResource TextPrimary}"/>
+                <Button Grid.Column="1" Text="Export" Clicked="OnExportClicked" 
+                        Margin="0,0,8,0" BackgroundColor="{StaticResource AccentDark}"/>
+                <Button Grid.Column="2" Text="Import" Clicked="OnImportClicked"
+                        BackgroundColor="{StaticResource AccentDark}"/>
+            </Grid>
+        </Frame>
+
+        <!-- Todo List -->
+        <ScrollView Grid.Row="1">
+            <CollectionView x:Name="TodoCollectionView" 
+                          SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <SwipeView>
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItem Text="Delete" 
+                                             BackgroundColor="#F44336"
+                                             Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.DeleteCommand}"
+                                             CommandParameter="{Binding .}"/>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+                            
+                            <Frame Margin="0,0,0,8" Padding="12" BackgroundColor="{StaticResource Surface}">
+                                <Frame.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.EditCommand}"
+                                                        CommandParameter="{Binding .}"/>
+                                </Frame.GestureRecognizers>
+                                
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+                                    <!-- Checkbox -->
+                                    <CheckBox Grid.Column="0" Grid.Row="0" 
+                                            IsChecked="{Binding IsCompleted}"
+                                            CheckedChanged="OnCheckBoxChanged"
+                                            VerticalOptions="Start"
+                                            Margin="0,0,12,0"/>
+                                    
+                                    <!-- Title and Description -->
+                                    <VerticalStackLayout Grid.Column="1" Grid.Row="0">
+                                        <Label Text="{Binding Title}" 
+                                             FontSize="16" 
+                                             FontAttributes="Bold"
+                                             TextDecorations="{Binding IsCompleted, Converter={StaticResource BoolToTextDecoration}}"
+                                             LineBreakMode="WordWrap"/>
+                                        
+                                        <Label Text="{Binding Description}" 
+                                             FontSize="14" 
+                                             TextColor="{StaticResource TextSecondary}"
+                                             IsVisible="{Binding Description, Converter={StaticResource HasValueConverter}}"
+                                             LineBreakMode="WordWrap"
+                                             Margin="0,4,0,0"/>
+                                        
+                                        <Label IsVisible="{Binding Deadline, Converter={StaticResource HasValueConverter}}"
+                                             Margin="0,4,0,0">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="📅 " FontSize="14"/>
+                                                    <Span Text="{Binding Deadline, StringFormat='{0:MMM dd, yyyy HH:mm}'}" 
+                                                        FontSize="14" 
+                                                        TextColor="{StaticResource DeadlineRed}"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </Frame>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </ScrollView>
+
+        <!-- Add Button -->
+        <Button Grid.Row="2" 
+                Text="+ Add Todo" 
+                Clicked="OnAddTodoClicked"
+                FontSize="18"
+                Margin="0,16,0,0"
+                BackgroundColor="{StaticResource Primary}"/>
+    </Grid>
+</ContentPage>

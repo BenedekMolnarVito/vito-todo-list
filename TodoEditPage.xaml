@@ -1,1 +1,43 @@
-404: Not Found
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VitoTodoList.TodoEditPage"
+             Title="Edit Todo">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Frame BackgroundColor="{StaticResource PrimaryLight}" Padding="16">
+                <Label Text="✏️ Todo Details" FontSize="20" FontAttributes="Bold"/>
+            </Frame>
+
+            <Label Text="Title" FontSize="16" FontAttributes="Bold"/>
+            <Entry x:Name="TitleEntry" Placeholder="Enter title..." />
+
+            <Label Text="Description" FontSize="16" FontAttributes="Bold"/>
+            <Editor x:Name="DescriptionEditor" 
+                   Placeholder="Enter description..." 
+                   HeightRequest="100"/>
+
+            <Label Text="Deadline (Optional)" FontSize="16" FontAttributes="Bold"/>
+            <HorizontalStackLayout Spacing="8">
+                <DatePicker x:Name="DeadlineDatePicker" 
+                          Format="MMM dd, yyyy"
+                          MinimumDate="01/01/2020"
+                          HorizontalOptions="FillAndExpand"/>
+                <TimePicker x:Name="DeadlineTimePicker" 
+                          Format="HH:mm"
+                          HorizontalOptions="FillAndExpand"/>
+                <CheckBox x:Name="HasDeadlineCheckBox" 
+                        VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <Button Text="Save" 
+                   Clicked="OnSaveClicked"
+                   BackgroundColor="{StaticResource Primary}"/>
+            
+            <Button Text="Cancel" 
+                   Clicked="OnCancelClicked"
+                   Style="{StaticResource SecondaryButton}"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

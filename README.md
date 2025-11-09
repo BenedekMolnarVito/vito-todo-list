@@ -1,2 +1,160 @@
-# vito-todo-list
-Simple Android TODO List App with widget.
+# VitoTodoList - Android Todo List App
+
+A feature-rich Todo List application for Android built with .NET MAUI, targeting Android API 35.
+
+## Features
+
+### Core Functionality
+- **CRUD Operations**: Create, Read, Update, and Delete todo items
+- **SQLite Database**: Local persistent storage for all todo items
+- **Optional Deadlines**: Set deadlines with month, day, and hour precision
+- **Completion Tracking**: Mark items as complete with timestamps
+- **Item Reordering**: Move items up and down in the list
+
+### Advanced Features
+- **Android Home Screen Widget**
+  - Resizable widget showing your todo items
+  - Displays first n items on the home screen
+  - Tap to open the full app
+  - Auto-updates when todos change
+  
+- **Export/Import**
+  - Export todos to JSON format
+  - Import todos from JSON files
+  - Preserve all data including deadlines and completion status
+
+- **Share Functionality**
+  - Share your todo list via any installed app
+  - Compatible with Google Drive, OneDrive, email, etc.
+
+## Technology Stack
+
+- **.NET MAUI 9.0** - Cross-platform framework
+- **Android API 35** - Target platform
+- **SQLite** - Local database (sqlite-net-pcl)
+- **C# 12** - Programming language
+
+## Project Structure
+
+```
+VitoTodoList/
+├── Models/
+│   └── TodoItem.cs              # Data model for todo items
+├── Data/
+│   └── TodoDatabase.cs          # SQLite database access
+├── Services/
+│   └── ExportImportService.cs   # JSON export/import logic
+├── Converters/
+│   ├── BoolToTextDecorationConverter.cs
+│   ├── StringToBoolConverter.cs
+│   └── HasValueConverter.cs
+├── Platforms/
+│   └── Android/
+│       ├── Widgets/
+│       │   ├── TodoWidgetProvider.cs    # Widget implementation
+│       │   └── WidgetUpdateHelper.cs    # Widget update helper
+│       └── Resources/
+│           ├── layout/
+│           │   └── todo_widget.xml      # Widget layout
+│           └── xml/
+│               └── todo_widget_info.xml # Widget configuration
+├── MainPage.xaml                # Main todo list UI
+├── MainPage.xaml.cs            # Main page logic
+├── TodoEditPage.xaml           # Add/Edit todo UI
+└── TodoEditPage.xaml.cs        # Add/Edit logic
+```
+
+## Building the App
+
+### Prerequisites
+- .NET 9.0 SDK
+- .NET MAUI workload for Android
+- Android SDK (API 35)
+
+### Installation
+
+1. Install .NET MAUI workload:
+```bash
+dotnet workload install maui-android
+```
+
+2. Restore dependencies:
+```bash
+dotnet restore vito-todo-list.sln
+```
+
+3. Build the project:
+```bash
+dotnet build vito-todo-list.sln -c Release
+```
+
+4. Deploy to device/emulator:
+```bash
+dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
+```
+
+
+5. (Optional) Clean project:
+```bash
+dotnet clean vito-todo-list.sln
+```
+
+6. (Optional) Full clean rebuild:
+```bash
+dotnet clean vito-todo-list.sln;
+dotnet restore vito-todo-list.sln;
+dotnet build vito-todo-list.sln -c Release;
+dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
+```
+
+## Usage
+
+### Managing Todos
+1. **Add Todo**: Click "Add Todo" button, enter title, optional description and deadline
+2. **Edit Todo**: Click "Edit" button on any todo item
+3. **Complete Todo**: Check the checkbox to mark as complete
+4. **Delete Todo**: Swipe left and tap "Delete" (or use swipe menu)
+5. **Reorder**: Use ↑ and ↓ buttons to move items up or down
+
+### Using the Widget
+1. Long-press on your Android home screen
+2. Select "Widgets"
+3. Find "Todo List Widget"
+4. Drag to home screen
+5. Resize as needed (supports both horizontal and vertical resizing)
+6. Tap widget to open the full app
+
+### Export/Import
+- **Export**: Click "Export" to save todos as JSON file, then share via any app
+- **Import**: Click "Import", select a JSON file with todo data
+
+### Sharing
+- Click "Share" to share your todo list via installed apps (email, cloud storage, etc.)
+
+## Database Schema
+
+**TodoItem Table:**
+- `Id` (int, PrimaryKey, AutoIncrement)
+- `Title` (string, MaxLength: 200)
+- `Description` (string, nullable)
+- `Deadline` (DateTime, nullable)
+- `IsCompleted` (bool)
+- `Order` (int)
+- `CreatedAt` (DateTime)
+- `CompletedAt` (DateTime, nullable)
+
+## Widget Behavior
+
+- Updates automatically when todos are added, edited, deleted, or reordered
+- Shows up to 5 items by default (configurable)
+- Completed items shown with ✓, incomplete with ○
+- Truncates long titles to fit widget size
+- Shows count of additional items if list is longer than display limit
+
+## License
+
+This project is open source and available under the MIT License.
+
+## Development
+
+Built with ❤️ using .NET MAUI and C#

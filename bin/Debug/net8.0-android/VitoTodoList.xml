@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>VitoTodoList</name>
+    </assembly>
+    <members>
+        <member name="T:VitoTodoList.Data.TodoDatabase">
+            <summary>
+            SQLite database for storing todo items
+            </summary>
+        </member>
+    </members>
+</doc>

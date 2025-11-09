@@ -3,6 +3,9 @@ using VitoTodoList.Models;
 
 namespace VitoTodoList.Data;
 
+/// <summary>
+/// Database access layer for TodoItem using SQLite
+/// </summary>
 public class TodoDatabase
 {
     private SQLiteAsyncConnection? _database;

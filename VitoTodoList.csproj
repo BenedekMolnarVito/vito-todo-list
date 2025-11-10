@@ -53,4 +53,11 @@
 		<AndroidResource Include="Platforms\Android\Resources\**\*.axml" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- Exclude test files from main project build -->
+		<Compile Remove="VitoTodoList.Tests\**" />
+		<EmbeddedResource Remove="VitoTodoList.Tests\**" />
+		<None Remove="VitoTodoList.Tests\**" />
+	</ItemGroup>
+
 </Project>

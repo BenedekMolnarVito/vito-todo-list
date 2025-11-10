@@ -4,6 +4,8 @@ using Android.Content;
 using Android.Widget;
 using VitoTodoList.Data;
 using System.Text;
+using Android.Text;
+using Android.Text.Style;
 
 namespace VitoTodoList.Platforms.Android.Widgets;
 
@@ -37,30 +39,44 @@ public class TodoWidgetProvider : AppWidgetProvider
             // Build the widget content
             var remoteViews = new RemoteViews(context.PackageName, Resource.Layout.todo_widget);
             
-            var sb = new StringBuilder();
+            var sb = new SpannableStringBuilder();
             var itemCount = Math.Min(todos.Count, maxItems);
             
             if (todos.Count == 0)
             {
-                sb.AppendLine("No todos yet!");
+                sb.Append("No todos yet!");
             }
             else
             {
                 for (int i = 0; i < itemCount; i++)
                 {
                     var todo = todos[i];
-                    var status = todo.IsCompleted ? "✓" : "○";
-                    var title = todo.Title.Length > 30 ? todo.Title.Substring(0, 27) + "..." : todo.Title;
-                    sb.AppendLine($"{status} {title}");
+                    // Use bullet point for each item
+                    sb.Append("• ");
+                    sb.Append(todo.Title);
+                    
+                    // Add deadline in red if it exists
+                    if (todo.Deadline.HasValue)
+                    {
+                        var deadlineText = $" {todo.Deadline.Value:MMM dd, HH:mm}";
+                        int start = sb.Length();
+                        sb.Append(deadlineText);
+                        sb.SetSpan(new ForegroundColorSpan(global::Android.Graphics.Color.Red), start, sb.Length(), SpanTypes.ExclusiveExclusive);
+                    }
+                    
+                    if (i < itemCount - 1)
+                    {
+                        sb.Append("\n");
+                    }
                 }
                 
                 if (todos.Count > maxItems)
                 {
-                    sb.AppendLine($"... and {todos.Count - maxItems} more");
+                    sb.Append($"\n... and {todos.Count - maxItems} more");
                 }
             }
 
-            remoteViews.SetTextViewText(Resource.Id.widget_text, sb.ToString().TrimEnd());
+            remoteViews.SetTextViewText(Resource.Id.widget_text, sb);
 
             // Create intent to launch app when widget is clicked
             var intent = new Intent(context, typeof(MainActivity));

@@ -3,6 +3,7 @@ using System.Windows.Input;
 using VitoTodoList.Data;
 using VitoTodoList.Models;
 using VitoTodoList.Services;
+using Microsoft.Maui.Platform;
 
 namespace VitoTodoList;
 
@@ -56,55 +57,34 @@ public partial class MainPage : ContentPage
     {
         System.Diagnostics.Debug.WriteLine($"OnDragStarting called. Sender: {sender?.GetType().Name}");
         
-        // The sender is the DragGestureRecognizer, we need to get the parent element it's attached to
-        View? dragHandle = null;
+        // The sender is the DragGestureRecognizer, get the Frame it's attached to
+        Frame? frame = null;
         
-        if (sender is DragGestureRecognizer recognizer && recognizer.Parent is View view)
+        if (sender is DragGestureRecognizer recognizer && recognizer.Parent is Frame f)
         {
-            dragHandle = view;
-            System.Diagnostics.Debug.WriteLine($"Found drag handle: {dragHandle.GetType().Name}");
-        }
-        else if (sender is View v)
-        {
-            dragHandle = v;
-            System.Diagnostics.Debug.WriteLine($"Sender is View: {dragHandle.GetType().Name}");
+            frame = f;
+            System.Diagnostics.Debug.WriteLine($"Found frame directly from recognizer");
         }
         
-        if (dragHandle != null)
+        if (frame != null && frame.BindingContext is TodoItem item)
         {
-            // Navigate up to find the Frame that has the TodoItem as BindingContext
-            var parent = dragHandle.Parent;
-            int depth = 0;
-            while (parent != null && parent.BindingContext is not TodoItem)
-            {
-                System.Diagnostics.Debug.WriteLine($"  Parent {depth}: {parent.GetType().Name}, BindingContext: {parent.BindingContext?.GetType().Name}");
-                parent = parent.Parent;
-                depth++;
-            }
-
-            if (parent?.BindingContext is TodoItem item)
-            {
-                _draggedItem = item;
-                _lastDragOverIndex = _todos.IndexOf(item);
-                e.Data.Properties["TodoItem"] = item;
-                
-                System.Diagnostics.Debug.WriteLine($"SUCCESS: Drag started for '{item.Title}' at index {_lastDragOverIndex}");
-                
-                // Add visual feedback - reduce opacity of the Frame
-                if (parent is Frame frame)
-                {
-                    frame.Opacity = 0.5;
-                    System.Diagnostics.Debug.WriteLine($"Set frame opacity to 0.5");
-                }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"ERROR: Could not find TodoItem in parent hierarchy. Last parent: {parent?.GetType().Name}");
-            }
+            _draggedItem = item;
+            _lastDragOverIndex = _todos.IndexOf(item);
+            e.Data.Properties["TodoItem"] = item;
+            
+            System.Diagnostics.Debug.WriteLine($"SUCCESS: Drag started for '{item.Title}' at index {_lastDragOverIndex}");
+            
+            // Make the original semi-transparent during drag
+            frame.Opacity = 0.4;
+            
+            // Set drag preview text (Android will display this with the shadow)
+            e.Data.Text = $"☰ {item.Title}";
+            
+            System.Diagnostics.Debug.WriteLine($"Set frame opacity and drag preview for: {item.Title}");
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"ERROR: Could not find drag handle from sender");
+            System.Diagnostics.Debug.WriteLine($"ERROR: Could not find Frame or TodoItem. Frame: {frame != null}, BindingContext type: {frame?.BindingContext?.GetType().Name}");
         }
     }
 
@@ -144,11 +124,8 @@ public partial class MainPage : ContentPage
         
         System.Diagnostics.Debug.WriteLine($"Target frame: {targetFrame != null}, Target item: {targetItem?.Title}");
         
-        if (targetFrame != null)
-        {
-            // Restore opacity
-            targetFrame.Opacity = 1.0;
-        }
+        // Restore opacity of all items immediately
+        RestoreAllItemsOpacity();
         
         if (_draggedItem != null && targetItem != null && _draggedItem.Id != targetItem.Id)
         {
@@ -173,7 +150,7 @@ public partial class MainPage : ContentPage
             await _database.UpdateOrderAsync(items);
             UpdateWidget();
             
-            // Then reload to restore opacity and refresh UI
+            // Then reload to refresh UI
             await LoadTodosAsync();
             
             _draggedItem = null;
@@ -192,6 +169,46 @@ public partial class MainPage : ContentPage
             System.Diagnostics.Debug.WriteLine("WARNING: _draggedItem is null in OnDrop!");
         }
     }
+
+    private void RestoreAllItemsOpacity()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Restoring opacity for all items");
+            
+            // Find all Frame elements in the CollectionView and restore their opacity
+            var collectionView = TodoListView;
+            if (collectionView?.Handler?.PlatformView is Android.Views.ViewGroup viewGroup)
+            {
+                RestoreOpacityRecursive(viewGroup);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error restoring opacity: {ex.Message}");
+        }
+    }
+
+#if ANDROID
+    private void RestoreOpacityRecursive(Android.Views.ViewGroup viewGroup)
+    {
+        for (int i = 0; i < viewGroup.ChildCount; i++)
+        {
+            var child = viewGroup.GetChildAt(i);
+            if (child != null)
+            {
+                // Restore alpha to full opacity
+                child.Alpha = 1.0f;
+                
+                // If it's a ViewGroup, recurse into its children
+                if (child is Android.Views.ViewGroup childGroup)
+                {
+                    RestoreOpacityRecursive(childGroup);
+                }
+            }
+        }
+    }
+#endif
 
     private void RestoreDraggedItemOpacity()
     {

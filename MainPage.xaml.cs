@@ -55,15 +55,12 @@ public partial class MainPage : ContentPage
 
     private void OnDragStarting(object? sender, DragStartingEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"OnDragStarting called. Sender: {sender?.GetType().Name}");
-        
         // The sender is the DragGestureRecognizer, get the Frame it's attached to
         Frame? frame = null;
         
         if (sender is DragGestureRecognizer recognizer && recognizer.Parent is Frame f)
         {
             frame = f;
-            System.Diagnostics.Debug.WriteLine($"Found frame directly from recognizer");
         }
         
         if (frame != null && frame.BindingContext is TodoItem item)
@@ -72,19 +69,11 @@ public partial class MainPage : ContentPage
             _lastDragOverIndex = _todos.IndexOf(item);
             e.Data.Properties["TodoItem"] = item;
             
-            System.Diagnostics.Debug.WriteLine($"SUCCESS: Drag started for '{item.Title}' at index {_lastDragOverIndex}");
-            
             // Make the original semi-transparent during drag
             frame.Opacity = 0.4;
             
             // Set drag preview text (Android will display this with the shadow)
             e.Data.Text = $"☰ {item.Title}";
-            
-            System.Diagnostics.Debug.WriteLine($"Set frame opacity and drag preview for: {item.Title}");
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine($"ERROR: Could not find Frame or TodoItem. Frame: {frame != null}, BindingContext type: {frame?.BindingContext?.GetType().Name}");
         }
     }
 
@@ -100,12 +89,8 @@ public partial class MainPage : ContentPage
             var draggedIndex = _todos.IndexOf(_draggedItem);
             var targetIndex = _todos.IndexOf(targetItem);
 
-            System.Diagnostics.Debug.WriteLine($"Drag over: {targetItem.Title} (target index: {targetIndex}, dragged index: {draggedIndex})");
-
             if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex && targetIndex != _lastDragOverIndex)
             {
-                System.Diagnostics.Debug.WriteLine($"Moving item from {draggedIndex} to {targetIndex}");
-                
                 // Real-time reordering: move item in the collection
                 _todos.Move(draggedIndex, targetIndex);
                 _lastDragOverIndex = targetIndex;
@@ -115,58 +100,38 @@ public partial class MainPage : ContentPage
 
     private async void OnDrop(object? sender, DropEventArgs e)
     {
-        System.Diagnostics.Debug.WriteLine($"Drop event triggered. Sender type: {sender?.GetType().Name}, _draggedItem is null: {_draggedItem == null}");
-        
         // Get the drop target
         DropGestureRecognizer? dropRecognizer = sender as DropGestureRecognizer;
         Frame? targetFrame = dropRecognizer?.Parent as Frame;
         TodoItem? targetItem = targetFrame?.BindingContext as TodoItem;
-        
-        System.Diagnostics.Debug.WriteLine($"Target frame: {targetFrame != null}, Target item: {targetItem?.Title}");
         
         // Restore opacity of all items immediately
         RestoreAllItemsOpacity();
         
         if (_draggedItem != null && targetItem != null && _draggedItem.Id != targetItem.Id)
         {
-            System.Diagnostics.Debug.WriteLine($"Reordering: moving '{_draggedItem.Title}' to position of '{targetItem.Title}'");
-            
             // Perform the reorder one final time
             var draggedIndex = _todos.IndexOf(_draggedItem);
             var targetIndex = _todos.IndexOf(targetItem);
             
-            System.Diagnostics.Debug.WriteLine($"Dragged index: {draggedIndex}, Target index: {targetIndex}");
-            
             if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex)
             {
                 _todos.Move(draggedIndex, targetIndex);
-                System.Diagnostics.Debug.WriteLine($"Moved item in collection");
             }
             
             // Save the new order to database
             var items = _todos.ToList();
-            System.Diagnostics.Debug.WriteLine($"Final order: {string.Join(", ", items.Select(i => i.Title))}");
-            
             await _database.UpdateOrderAsync(items);
             UpdateWidget();
-            
-            // Then reload to refresh UI
-            await LoadTodosAsync();
             
             _draggedItem = null;
             _lastDragOverIndex = -1;
         }
         else if (_draggedItem != null)
         {
-            System.Diagnostics.Debug.WriteLine($"No reorder needed - same item or no target. Restoring opacity.");
-            // Just restore opacity
-            await LoadTodosAsync();
+            // No reorder needed
             _draggedItem = null;
             _lastDragOverIndex = -1;
-        }
-        else
-        {
-            System.Diagnostics.Debug.WriteLine("WARNING: _draggedItem is null in OnDrop!");
         }
     }
 
@@ -245,11 +210,16 @@ public partial class MainPage : ContentPage
     {
         if (sender is CheckBox checkBox && checkBox.BindingContext is TodoItem item)
         {
+            // Temporarily remove handler to prevent re-entry
+            checkBox.CheckedChanged -= OnCheckBoxChanged;
+            
             item.IsCompleted = e.Value;
             item.CompletedAt = e.Value ? DateTime.Now : null;
             await _database.SaveItemAsync(item);
             UpdateWidget();
-            await LoadTodosAsync();
+            
+            // Re-attach handler
+            checkBox.CheckedChanged += OnCheckBoxChanged;
         }
     }
 

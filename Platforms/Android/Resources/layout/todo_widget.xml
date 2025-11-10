@@ -6,12 +6,26 @@
     android:background="#FFEB3B"
     android:padding="12dp">
 
+    <ListView
+        android:id="@+id/widget_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbarStyle="outsideInset"
+        android:scrollbarThumbVertical="@android:color/darker_gray"
+        android:scrollbarAlwaysDrawVerticalTrack="true"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false"
+        android:divider="#00000000"
+        android:dividerHeight="4dp" />
+
     <TextView
-        android:id="@+id/widget_text"
+        android:id="@+id/widget_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Loading..."
+        android:layout_centerInParent="true"
+        android:text="No todos yet!"
         android:textSize="15sp"
         android:textColor="#000000"
-        android:lineSpacingExtra="4dp" />
+        android:gravity="center"
+        android:visibility="gone" />
 </RelativeLayout>

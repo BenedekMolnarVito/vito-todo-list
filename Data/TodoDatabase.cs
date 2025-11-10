@@ -47,12 +47,12 @@ public class TodoDatabase
         }
         else
         {
-            // Set order to the end of the list
+            // Set order to the beginning of the list (top)
             var items = await _database!.Table<TodoItem>()
-                .OrderByDescending(x => x.Order)
+                .OrderBy(x => x.Order)
                 .ToListAsync();
-            var maxOrder = items.FirstOrDefault()?.Order ?? 0;
-            item.Order = maxOrder + 1;
+            var minOrder = items.FirstOrDefault()?.Order ?? 0;
+            item.Order = minOrder - 1;
             return await _database!.InsertAsync(item);
         }
     }

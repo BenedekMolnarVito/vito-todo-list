@@ -1,6 +1,7 @@
 using Android.App;
 using Android.Appwidget;
 using Android.Content;
+using Android.Views;
 using Android.Widget;
 using VitoTodoList.Data;
 using System.Text;
@@ -31,56 +32,35 @@ public class TodoWidgetProvider : AppWidgetProvider
         {
             var database = new TodoDatabase();
             var todos = await database.GetItemsAsync();
-            
-            // Get widget size preferences
-            var prefs = context.GetSharedPreferences("TodoWidget", FileCreationMode.Private);
-            var maxItems = prefs?.GetInt($"widget_{appWidgetId}_maxItems", 5) ?? 5;
 
             // Build the widget content
             var remoteViews = new RemoteViews(context.PackageName, Resource.Layout.todo_widget);
             
-            var sb = new SpannableStringBuilder();
-            var itemCount = Math.Min(todos.Count, maxItems);
-            
             if (todos.Count == 0)
             {
-                sb.Append("No todos yet!");
+                // Show empty state
+                remoteViews.SetViewVisibility(Resource.Id.widget_list, ViewStates.Gone);
+                remoteViews.SetViewVisibility(Resource.Id.widget_empty, ViewStates.Visible);
             }
             else
             {
-                for (int i = 0; i < itemCount; i++)
-                {
-                    var todo = todos[i];
-                    // Use bullet point for each item
-                    sb.Append("• ");
-                    sb.Append(todo.Title);
-                    
-                    // Add deadline in red if it exists
-                    if (todo.Deadline.HasValue)
-                    {
-                        var deadlineText = $" {todo.Deadline.Value:MMM dd, HH:mm}";
-                        int start = sb.Length();
-                        sb.Append(deadlineText);
-                        sb.SetSpan(new ForegroundColorSpan(global::Android.Graphics.Color.Red), start, sb.Length(), SpanTypes.ExclusiveExclusive);
-                    }
-                    
-                    if (i < itemCount - 1)
-                    {
-                        sb.Append("\n");
-                    }
-                }
+                // Show list view
+                remoteViews.SetViewVisibility(Resource.Id.widget_list, ViewStates.Visible);
+                remoteViews.SetViewVisibility(Resource.Id.widget_empty, ViewStates.Gone);
+
+                // Set up the intent that starts the RemoteViewsService for the ListView
+                var intent = new Intent(context, typeof(TodoWidgetService));
+                intent.PutExtra(AppWidgetManager.ExtraAppwidgetId, appWidgetId);
+                intent.SetData(global::Android.Net.Uri.Parse(intent.ToUri(IntentUriType.Scheme)!));
                 
-                if (todos.Count > maxItems)
-                {
-                    sb.Append($"\n... and {todos.Count - maxItems} more");
-                }
+#pragma warning disable CA1422
+                remoteViews.SetRemoteAdapter(Resource.Id.widget_list, intent);
+#pragma warning restore CA1422
             }
 
-            remoteViews.SetTextViewText(Resource.Id.widget_text, sb);
-
-            // Create intent to launch app when widget is clicked
-            var intent = new Intent(context, typeof(MainActivity));
-            intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
+            // Create intent to launch app when widget container is clicked
+            var launchIntent = new Intent(context, typeof(MainActivity));
+            launchIntent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
             
             var flags = PendingIntentFlags.UpdateCurrent;
 #pragma warning disable CA1416
@@ -90,10 +70,21 @@ public class TodoWidgetProvider : AppWidgetProvider
             }
 #pragma warning restore CA1416
             
-            var pendingIntent = PendingIntent.GetActivity(context, 0, intent, flags);
+            var pendingIntent = PendingIntent.GetActivity(context, 0, launchIntent, flags);
             remoteViews.SetOnClickPendingIntent(Resource.Id.widget_container, pendingIntent);
 
+            // Set up click handling for list items
+            var clickIntentTemplate = new Intent(context, typeof(MainActivity));
+            clickIntentTemplate.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
+            var clickPendingIntentTemplate = PendingIntent.GetActivity(context, 0, clickIntentTemplate, flags);
+            remoteViews.SetPendingIntentTemplate(Resource.Id.widget_list, clickPendingIntentTemplate);
+
             appWidgetManager.UpdateAppWidget(appWidgetId, remoteViews);
+            
+            // Notify the ListView to refresh its data
+#pragma warning disable CA1422
+            appWidgetManager.NotifyAppWidgetViewDataChanged(appWidgetId, Resource.Id.widget_list);
+#pragma warning restore CA1422
         }
         catch (Exception ex)
         {

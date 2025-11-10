@@ -4,22 +4,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFEB3B"
-    android:padding="4dp">
+    android:padding="12dp">
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/widget_text"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="#FFEB3B"
-        android:padding="2dp">
-
-        <TextView
-            android:id="@+id/widget_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Loading..."
-            android:textSize="14sp"
-            android:textColor="#000000"
-            android:padding="4dp" />
-    </LinearLayout>
+        android:layout_height="wrap_content"
+        android:text="Loading..."
+        android:textSize="15sp"
+        android:textColor="#000000"
+        android:lineSpacingExtra="4dp" />
 </RelativeLayout>

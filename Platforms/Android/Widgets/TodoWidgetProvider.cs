@@ -9,7 +9,7 @@ using Android.Text.Style;
 
 namespace VitoTodoList.Platforms.Android.Widgets;
 
-[BroadcastReceiver(Label = "Todo List Widget", Exported = true)]
+[BroadcastReceiver(Label = "Todo Widget", Exported = true)]
 [IntentFilter(new string[] { "android.appwidget.action.APPWIDGET_UPDATE" })]
 [MetaData("android.appwidget.provider", Resource = "@xml/todo_widget_info")]
 public class TodoWidgetProvider : AppWidgetProvider

@@ -47,12 +47,18 @@ public class TodoDatabase
         }
         else
         {
-            // Set order to the end of the list
-            var items = await _database!.Table<TodoItem>()
-                .OrderByDescending(x => x.Order)
-                .ToListAsync();
-            var maxOrder = items.FirstOrDefault()?.Order ?? 0;
-            item.Order = maxOrder + 1;
+            // New items go to the top (Order = 0), shift existing items down
+            var existingItems = await _database!.Table<TodoItem>().ToListAsync();
+            
+            // Increment order of all existing items
+            foreach (var existingItem in existingItems)
+            {
+                existingItem.Order++;
+                await _database!.UpdateAsync(existingItem);
+            }
+            
+            // Insert new item at the top
+            item.Order = 0;
             return await _database!.InsertAsync(item);
         }
     }

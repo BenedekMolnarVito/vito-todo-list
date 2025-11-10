@@ -43,8 +43,9 @@ public class TodoRemoteViewsFactory : Java.Lang.Object, RemoteViewsService.IRemo
     {
         try
         {
-            // Run synchronously in the widget context
-            var database = new TodoDatabase();
+            // Use the app's data directory path directly for widget context
+            var dbPath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "todos.db3");
+            var database = new TodoDatabase(dbPath);
             _todos = database.GetItemsAsync().GetAwaiter().GetResult();
         }
         catch (Exception ex)

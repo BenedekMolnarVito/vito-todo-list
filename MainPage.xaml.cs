@@ -210,16 +210,13 @@ public partial class MainPage : ContentPage
     {
         if (sender is CheckBox checkBox && checkBox.BindingContext is TodoItem item)
         {
-            // Temporarily remove handler to prevent re-entry
-            checkBox.CheckedChanged -= OnCheckBoxChanged;
-            
             item.IsCompleted = e.Value;
             item.CompletedAt = e.Value ? DateTime.Now : null;
             await _database.SaveItemAsync(item);
             UpdateWidget();
             
-            // Re-attach handler
-            checkBox.CheckedChanged += OnCheckBoxChanged;
+            // Reload to update strikethrough binding
+            await LoadTodosAsync();
         }
     }
 

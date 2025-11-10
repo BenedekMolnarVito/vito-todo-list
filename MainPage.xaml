@@ -67,7 +67,8 @@
                                 
                                 <CheckBox Grid.Column="1" 
                                          IsChecked="{Binding IsCompleted}"
-                                         CheckedChanged="OnCheckBoxChanged"/>
+                                         CheckedChanged="OnCheckBoxChanged"
+                                         Color="Gray"/>
                                 
                                 <VerticalStackLayout Grid.Column="2" Margin="10,0" VerticalOptions="Center">
                                     <Label Text="{Binding Title}" 

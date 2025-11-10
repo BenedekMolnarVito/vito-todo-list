@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VitoTodoList.TodoEditPage"
+             Title="{Binding PageTitle}"
+             BackgroundColor="{StaticResource YellowBackground}">
+    
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="15">
+            <Label Text="Title" FontAttributes="Bold" TextColor="Black"/>
+            <Entry x:Name="TitleEntry" 
+                   Placeholder="Enter todo title" 
+                   MaxLength="200"
+                   BackgroundColor="{StaticResource YellowLight}"
+                   TextColor="Black"/>
+
+            <Label Text="Description" FontAttributes="Bold" TextColor="Black"/>
+            <Editor x:Name="DescriptionEditor" 
+                    Placeholder="Enter description (optional)" 
+                    HeightRequest="100"
+                    BackgroundColor="{StaticResource YellowLight}"
+                    TextColor="Black"/>
+
+            <Label Text="Deadline (Optional)" FontAttributes="Bold" TextColor="Black"/>
+            <HorizontalStackLayout Spacing="10">
+                <CheckBox x:Name="HasDeadlineCheckBox" CheckedChanged="OnHasDeadlineChanged"/>
+                <Label Text="Set deadline" VerticalOptions="Center" TextColor="Black"/>
+            </HorizontalStackLayout>
+
+            <DatePicker x:Name="DeadlineDatePicker" 
+                       IsVisible="{Binding Source={x:Reference HasDeadlineCheckBox}, Path=IsChecked}"
+                       MinimumDate="{x:Static x:DateTime.Now}"
+                       BackgroundColor="{StaticResource YellowLight}"
+                       TextColor="Black"/>
+
+            <TimePicker x:Name="DeadlineTimePicker"
+                       IsVisible="{Binding Source={x:Reference HasDeadlineCheckBox}, Path=IsChecked}"
+                       BackgroundColor="{StaticResource YellowLight}"
+                       TextColor="Black"/>
+
+            <HorizontalStackLayout Spacing="10" Margin="0,20,0,0">
+                <Button Text="Save" 
+                       Clicked="OnSaveClicked"
+                       BackgroundColor="{StaticResource YellowDark}"
+                       TextColor="White"
+                       HorizontalOptions="FillAndExpand"/>
+                <Button Text="Cancel" 
+                       Clicked="OnCancelClicked"
+                       BackgroundColor="{StaticResource YellowMedium}"
+                       TextColor="Black"
+                       HorizontalOptions="FillAndExpand"/>
+            </HorizontalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

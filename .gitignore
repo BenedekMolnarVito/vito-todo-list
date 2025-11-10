@@ -1,4 +1,31 @@
-# Gradle files
+# .NET MAUI / Xamarin
+bin/
+obj/
+*.user
+*.userprefs
+*.suo
+*.cache
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.vscode/
+
+# Gradle files (if mixing with native Android)
 .gradle/
 build/
 
@@ -32,3 +59,23 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
+
+# ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NuGet Packages
+*.nupkg
+**/packages/*
+!**/packages/build/

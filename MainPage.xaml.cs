@@ -3,6 +3,7 @@ using System.Windows.Input;
 using VitoTodoList.Data;
 using VitoTodoList.Models;
 using VitoTodoList.Services;
+using Microsoft.Maui.Platform;
 
 namespace VitoTodoList;
 
@@ -11,6 +12,8 @@ public partial class MainPage : ContentPage
     private readonly TodoDatabase _database;
     private readonly ExportImportService _exportImportService;
     private ObservableCollection<TodoItem> _todos;
+    private TodoItem? _draggedItem;
+    private int _lastDragOverIndex = -1;
 
     public ICommand DeleteCommand { get; }
 
@@ -50,36 +53,179 @@ public partial class MainPage : ContentPage
 #endif
     }
 
-    private async void OnMoveUpClicked(object? sender, EventArgs e)
+    private void OnDragStarting(object? sender, DragStartingEventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is TodoItem item)
+        System.Diagnostics.Debug.WriteLine($"OnDragStarting called. Sender: {sender?.GetType().Name}");
+        
+        // The sender is the DragGestureRecognizer, get the Frame it's attached to
+        Frame? frame = null;
+        
+        if (sender is DragGestureRecognizer recognizer && recognizer.Parent is Frame f)
         {
-            var index = _todos.IndexOf(item);
-            if (index > 0)
+            frame = f;
+            System.Diagnostics.Debug.WriteLine($"Found frame directly from recognizer");
+        }
+        
+        if (frame != null && frame.BindingContext is TodoItem item)
+        {
+            _draggedItem = item;
+            _lastDragOverIndex = _todos.IndexOf(item);
+            e.Data.Properties["TodoItem"] = item;
+            
+            System.Diagnostics.Debug.WriteLine($"SUCCESS: Drag started for '{item.Title}' at index {_lastDragOverIndex}");
+            
+            // Make the original semi-transparent during drag
+            frame.Opacity = 0.4;
+            
+            // Set drag preview text (Android will display this with the shadow)
+            e.Data.Text = $"☰ {item.Title}";
+            
+            System.Diagnostics.Debug.WriteLine($"Set frame opacity and drag preview for: {item.Title}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"ERROR: Could not find Frame or TodoItem. Frame: {frame != null}, BindingContext type: {frame?.BindingContext?.GetType().Name}");
+        }
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Copy;
+        
+        if (sender is Frame targetFrame && 
+            targetFrame.BindingContext is TodoItem targetItem &&
+            _draggedItem != null &&
+            _draggedItem.Id != targetItem.Id)
+        {
+            var draggedIndex = _todos.IndexOf(_draggedItem);
+            var targetIndex = _todos.IndexOf(targetItem);
+
+            System.Diagnostics.Debug.WriteLine($"Drag over: {targetItem.Title} (target index: {targetIndex}, dragged index: {draggedIndex})");
+
+            if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex && targetIndex != _lastDragOverIndex)
             {
-                var items = _todos.ToList();
-                items.RemoveAt(index);
-                items.Insert(index - 1, item);
-                await _database.UpdateOrderAsync(items);
-                await LoadTodosAsync();
+                System.Diagnostics.Debug.WriteLine($"Moving item from {draggedIndex} to {targetIndex}");
+                
+                // Real-time reordering: move item in the collection
+                _todos.Move(draggedIndex, targetIndex);
+                _lastDragOverIndex = targetIndex;
             }
         }
     }
 
-    private async void OnMoveDownClicked(object? sender, EventArgs e)
+    private async void OnDrop(object? sender, DropEventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is TodoItem item)
+        System.Diagnostics.Debug.WriteLine($"Drop event triggered. Sender type: {sender?.GetType().Name}, _draggedItem is null: {_draggedItem == null}");
+        
+        // Get the drop target
+        DropGestureRecognizer? dropRecognizer = sender as DropGestureRecognizer;
+        Frame? targetFrame = dropRecognizer?.Parent as Frame;
+        TodoItem? targetItem = targetFrame?.BindingContext as TodoItem;
+        
+        System.Diagnostics.Debug.WriteLine($"Target frame: {targetFrame != null}, Target item: {targetItem?.Title}");
+        
+        // Restore opacity of all items immediately
+        RestoreAllItemsOpacity();
+        
+        if (_draggedItem != null && targetItem != null && _draggedItem.Id != targetItem.Id)
         {
-            var index = _todos.IndexOf(item);
-            if (index < _todos.Count - 1)
+            System.Diagnostics.Debug.WriteLine($"Reordering: moving '{_draggedItem.Title}' to position of '{targetItem.Title}'");
+            
+            // Perform the reorder one final time
+            var draggedIndex = _todos.IndexOf(_draggedItem);
+            var targetIndex = _todos.IndexOf(targetItem);
+            
+            System.Diagnostics.Debug.WriteLine($"Dragged index: {draggedIndex}, Target index: {targetIndex}");
+            
+            if (draggedIndex != -1 && targetIndex != -1 && draggedIndex != targetIndex)
             {
-                var items = _todos.ToList();
-                items.RemoveAt(index);
-                items.Insert(index + 1, item);
-                await _database.UpdateOrderAsync(items);
-                await LoadTodosAsync();
+                _todos.Move(draggedIndex, targetIndex);
+                System.Diagnostics.Debug.WriteLine($"Moved item in collection");
+            }
+            
+            // Save the new order to database
+            var items = _todos.ToList();
+            System.Diagnostics.Debug.WriteLine($"Final order: {string.Join(", ", items.Select(i => i.Title))}");
+            
+            await _database.UpdateOrderAsync(items);
+            UpdateWidget();
+            
+            // Then reload to refresh UI
+            await LoadTodosAsync();
+            
+            _draggedItem = null;
+            _lastDragOverIndex = -1;
+        }
+        else if (_draggedItem != null)
+        {
+            System.Diagnostics.Debug.WriteLine($"No reorder needed - same item or no target. Restoring opacity.");
+            // Just restore opacity
+            await LoadTodosAsync();
+            _draggedItem = null;
+            _lastDragOverIndex = -1;
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("WARNING: _draggedItem is null in OnDrop!");
+        }
+    }
+
+    private void RestoreAllItemsOpacity()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("Restoring opacity for all items");
+            
+            // Find all Frame elements in the CollectionView and restore their opacity
+            var collectionView = TodoListView;
+            if (collectionView?.Handler?.PlatformView is Android.Views.ViewGroup viewGroup)
+            {
+                RestoreOpacityRecursive(viewGroup);
             }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error restoring opacity: {ex.Message}");
+        }
+    }
+
+#if ANDROID
+    private void RestoreOpacityRecursive(Android.Views.ViewGroup viewGroup)
+    {
+        for (int i = 0; i < viewGroup.ChildCount; i++)
+        {
+            var child = viewGroup.GetChildAt(i);
+            if (child != null)
+            {
+                // Restore alpha to full opacity
+                child.Alpha = 1.0f;
+                
+                // If it's a ViewGroup, recurse into its children
+                if (child is Android.Views.ViewGroup childGroup)
+                {
+                    RestoreOpacityRecursive(childGroup);
+                }
+            }
+        }
+    }
+#endif
+
+    private void RestoreDraggedItemOpacity()
+    {
+        // The CollectionView will recreate the visual, but we ensure cleanup
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            // Force a visual refresh by touching the collection
+            if (_draggedItem != null)
+            {
+                var index = _todos.IndexOf(_draggedItem);
+                if (index >= 0)
+                {
+                    var item = _todos[index];
+                    _todos[index] = item; // Trigger visual update
+                }
+            }
+        });
     }
 
     private async void OnAddTodoClicked(object? sender, EventArgs e)

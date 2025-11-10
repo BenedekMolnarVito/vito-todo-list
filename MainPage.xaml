@@ -3,23 +3,31 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="VitoTodoList.MainPage"
              x:Name="ThisPage"
-             Title="My Todo List">
+             Title="My Todo List"
+             BackgroundColor="{StaticResource YellowBackground}">
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="10">
         <!-- Header with action buttons -->
         <HorizontalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
             <Button Text="Add Todo" 
                     Clicked="OnAddTodoClicked" 
-                    BackgroundColor="{StaticResource Primary}"
+                    BackgroundColor="{StaticResource YellowDark}"
+                    TextColor="White"
                     HorizontalOptions="Start"/>
             <Button Text="Export" 
-                    Clicked="OnExportClicked" 
+                    Clicked="OnExportClicked"
+                    BackgroundColor="{StaticResource YellowMedium}"
+                    TextColor="Black"
                     HorizontalOptions="Start"/>
             <Button Text="Import" 
-                    Clicked="OnImportClicked" 
+                    Clicked="OnImportClicked"
+                    BackgroundColor="{StaticResource YellowMedium}"
+                    TextColor="Black"
                     HorizontalOptions="Start"/>
             <Button Text="Share" 
-                    Clicked="OnShareClicked" 
+                    Clicked="OnShareClicked"
+                    BackgroundColor="{StaticResource YellowMedium}"
+                    TextColor="Black"
                     HorizontalOptions="Start"/>
         </HorizontalStackLayout>
 
@@ -39,42 +47,51 @@
                             </SwipeItems>
                         </SwipeView.RightItems>
                         
-                        <Frame Margin="5" Padding="10" BorderColor="LightGray">
-                            <Grid ColumnDefinitions="Auto,*,Auto">
-                                <CheckBox Grid.Column="0" 
+                        <Frame Margin="5" Padding="10" 
+                               BackgroundColor="{StaticResource YellowLight}"
+                               BorderColor="{StaticResource YellowMedium}">
+                            <Frame.GestureRecognizers>
+                                <DragGestureRecognizer DragStarting="OnDragStarting" />
+                                <DropGestureRecognizer Drop="OnDrop" 
+                                                      DragOver="OnDragOver"
+                                                      AllowDrop="True" />
+                            </Frame.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                <!-- Drag Handle -->
+                                <Label Grid.Column="0"
+                                       Text="☰"
+                                       FontSize="24"
+                                       TextColor="Gray"
+                                       VerticalOptions="Center"
+                                       Margin="0,0,5,0" />
+                                
+                                <CheckBox Grid.Column="1" 
                                          IsChecked="{Binding IsCompleted}"
                                          CheckedChanged="OnCheckBoxChanged"/>
                                 
-                                <VerticalStackLayout Grid.Column="1" Margin="10,0" VerticalOptions="Center">
+                                <VerticalStackLayout Grid.Column="2" Margin="10,0" VerticalOptions="Center">
                                     <Label Text="{Binding Title}" 
                                            FontSize="16" 
                                            FontAttributes="Bold"
+                                           TextColor="Black"
                                            TextDecorations="{Binding IsCompleted, Converter={StaticResource BoolToTextDecorationConverter}}"/>
                                     <Label Text="{Binding Description}" 
                                            FontSize="12"
+                                           TextColor="Black"
                                            IsVisible="{Binding Description, Converter={StaticResource StringToBoolConverter}}"/>
                                     <Label Text="{Binding Deadline, StringFormat='Due: {0:MMM dd, HH:mm}'}" 
                                            FontSize="10"
-                                           TextColor="Orange"
+                                           TextColor="Red"
                                            IsVisible="{Binding Deadline, Converter={StaticResource HasValueConverter}}"/>
                                 </VerticalStackLayout>
 
-                                <HorizontalStackLayout Grid.Column="2" Spacing="5">
-                                    <Button Text="↑"
-                                           Clicked="OnMoveUpClicked"
-                                           CommandParameter="{Binding .}"
-                                           WidthRequest="40"
-                                           VerticalOptions="Center"/>
-                                    <Button Text="↓"
-                                           Clicked="OnMoveDownClicked"
-                                           CommandParameter="{Binding .}"
-                                           WidthRequest="40"
-                                           VerticalOptions="Center"/>
-                                    <Button Text="Edit"
-                                           Clicked="OnEditTodoClicked"
-                                           CommandParameter="{Binding .}"
-                                           VerticalOptions="Center"/>
-                                </HorizontalStackLayout>
+                                <Button Grid.Column="3"
+                                       Text="Edit"
+                                       Clicked="OnEditTodoClicked"
+                                       CommandParameter="{Binding .}"
+                                       BackgroundColor="{StaticResource YellowDark}"
+                                       TextColor="White"
+                                       VerticalOptions="Center"/>
                             </Grid>
                         </Frame>
                     </SwipeView>

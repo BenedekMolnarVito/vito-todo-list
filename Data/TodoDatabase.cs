@@ -9,13 +9,19 @@ namespace VitoTodoList.Data;
 public class TodoDatabase
 {
     private SQLiteAsyncConnection? _database;
+    private readonly string? _customDbPath;
+
+    public TodoDatabase(string? customDbPath = null)
+    {
+        _customDbPath = customDbPath;
+    }
 
     public async Task InitAsync()
     {
         if (_database != null)
             return;
 
-        var dbPath = Path.Combine(FileSystem.AppDataDirectory, "todos.db3");
+        var dbPath = _customDbPath ?? Path.Combine(FileSystem.AppDataDirectory, "todos.db3");
         _database = new SQLiteAsyncConnection(dbPath);
         await _database.CreateTableAsync<TodoItem>();
     }

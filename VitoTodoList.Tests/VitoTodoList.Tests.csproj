@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.9.172" />
+    <PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.111" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Models\TodoItem.cs" Link="Models\TodoItem.cs" />
+    <Compile Include="..\Data\TodoDatabase.cs" Link="Data\TodoDatabase.cs" />
+    <Compile Include="..\Services\ExportImportService.cs" Link="Services\ExportImportService.cs" />
+    <Compile Include="..\Converters\BoolToTextDecorationConverter.cs" Link="Converters\BoolToTextDecorationConverter.cs" />
+    <Compile Include="..\Converters\HasValueConverter.cs" Link="Converters\HasValueConverter.cs" />
+    <Compile Include="..\Converters\StringToBoolConverter.cs" Link="Converters\StringToBoolConverter.cs" />
+  </ItemGroup>
+
+</Project>

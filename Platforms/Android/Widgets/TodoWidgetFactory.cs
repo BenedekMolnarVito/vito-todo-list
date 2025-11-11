@@ -78,17 +78,23 @@ namespace VitoTodoList.Platforms.Android.Widgets
                 var item = _todoItems[position];
                 var remoteViews = new RemoteViews(_context.PackageName, Resource.Layout.todo_widget_item);
 
-                // Set checkbox icon based on completion status
-                remoteViews.SetTextViewText(Resource.Id.item_checkbox, item.IsCompleted ? "✓" : "○");
+                // Set checkbox icon based on completion status - bullet point for incomplete, checkmark for completed
+                remoteViews.SetTextViewText(Resource.Id.item_checkbox, item.IsCompleted ? "✓" : "•");
 
-                // Build title with strikethrough if completed
-                var titleBuilder = new SpannableStringBuilder(item.Title);
+                // Build title with strikethrough if completed, append (...) if has description
+                var titleText = item.Title;
+                if (!string.IsNullOrWhiteSpace(item.Description))
+                {
+                    titleText += " (...)";
+                }
+                
+                var titleBuilder = new SpannableStringBuilder(titleText);
                 if (item.IsCompleted)
                 {
                     titleBuilder.SetSpan(
                         new StrikethroughSpan(),
                         0,
-                        item.Title.Length,
+                        titleText.Length,
                         SpanTypes.ExclusiveExclusive);
                 }
                 remoteViews.SetTextViewText(Resource.Id.item_title, titleBuilder);
@@ -96,7 +102,31 @@ namespace VitoTodoList.Platforms.Android.Widgets
                 // Set deadline if exists
                 if (item.Deadline.HasValue)
                 {
-                    var deadlineText = item.Deadline.Value.ToString("MMM dd, HH:mm");
+                    var now = DateTime.Now;
+                    var daysUntilDeadline = (item.Deadline.Value - now).TotalDays;
+                    
+                    // Use day of week in Hungarian if within 7 days
+                    string deadlineText;
+                    if (daysUntilDeadline >= 0 && daysUntilDeadline <= 7)
+                    {
+                        var dayOfWeek = item.Deadline.Value.DayOfWeek switch
+                        {
+                            DayOfWeek.Monday => "hétfő",
+                            DayOfWeek.Tuesday => "kedd",
+                            DayOfWeek.Wednesday => "szerda",
+                            DayOfWeek.Thursday => "csütörtök",
+                            DayOfWeek.Friday => "péntek",
+                            DayOfWeek.Saturday => "szombat",
+                            DayOfWeek.Sunday => "vasárnap",
+                            _ => item.Deadline.Value.ToString("MMM dd")
+                        };
+                        deadlineText = $"{dayOfWeek} {item.Deadline.Value:HH:mm}";
+                    }
+                    else
+                    {
+                        deadlineText = item.Deadline.Value.ToString("MMM dd, HH:mm");
+                    }
+                    
                     var deadlineBuilder = new SpannableStringBuilder(deadlineText);
                     deadlineBuilder.SetSpan(
                         new ForegroundColorSpan(global::Android.Graphics.Color.Red),

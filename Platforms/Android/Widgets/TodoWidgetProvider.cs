@@ -3,9 +3,6 @@ using Android.Appwidget;
 using Android.Content;
 using Android.Widget;
 using VitoTodoList.Data;
-using System.Text;
-using Android.Text;
-using Android.Text.Style;
 
 namespace VitoTodoList.Platforms.Android.Widgets;
 
@@ -35,64 +32,32 @@ public class TodoWidgetProvider : AppWidgetProvider
             // Build the widget content
             var remoteViews = new RemoteViews(context.PackageName, Resource.Layout.todo_widget);
             
-            var sb = new SpannableStringBuilder();
-            
             if (todos.Count == 0)
             {
-                sb.Append("No todos yet!\nTap to open app.");
+                // Show empty state
+                remoteViews.SetViewVisibility(Resource.Id.widget_list, global::Android.Views.ViewStates.Gone);
+                remoteViews.SetViewVisibility(Resource.Id.widget_empty, global::Android.Views.ViewStates.Visible);
             }
             else
             {
-                // Show up to 15 items in widget (to fit in most widget sizes)
-                int maxItems = Math.Min(todos.Count, 15);
+                // Show list with data
+                remoteViews.SetViewVisibility(Resource.Id.widget_list, global::Android.Views.ViewStates.Visible);
+                remoteViews.SetViewVisibility(Resource.Id.widget_empty, global::Android.Views.ViewStates.Gone);
                 
-                for (int i = 0; i < maxItems; i++)
-                {
-                    var todo = todos[i];
-                    // Use bullet point for each item
-                    sb.Append(todo.IsCompleted ? "✓ " : "• ");
-                    
-                    // Store the start position for the title
-                    int titleStart = sb.Length();
-                    sb.Append(todo.Title);
-                    
-                    // Apply strikethrough if completed
-                    if (todo.IsCompleted)
-                    {
-                        sb.SetSpan(new StrikethroughSpan(), titleStart, sb.Length(), SpanTypes.ExclusiveExclusive);
-                    }
-                    
-                    // Add '(...)' if description exists
-                    if (!string.IsNullOrWhiteSpace(todo.Description))
-                    {
-                        sb.Append(" (...)");
-                    }
-                    
-                    // Add deadline in red if it exists
-                    if (todo.Deadline.HasValue)
-                    {
-                        var deadlineText = $" {todo.Deadline.Value:MMM dd, HH:mm}";
-                        int start = sb.Length();
-                        sb.Append(deadlineText);
-                        sb.SetSpan(new ForegroundColorSpan(global::Android.Graphics.Color.Red), start, sb.Length(), SpanTypes.ExclusiveExclusive);
-                    }
-                    
-                    if (i < maxItems - 1)
-                    {
-                        sb.Append("\n");
-                    }
-                }
+                // Set up the RemoteViewsService for the ListView
+                var serviceIntent = new Intent(context, typeof(TodoWidgetService));
+                serviceIntent.PutExtra(AppWidgetManager.ExtraAppwidgetId, appWidgetId);
+                serviceIntent.SetData(global::Android.Net.Uri.Parse(serviceIntent.ToUri(global::Android.Content.IntentUriType.Scheme)!));
                 
-                // Add indicator if there are more items
-                if (todos.Count > maxItems)
-                {
-                    sb.Append($"\n\n+ {todos.Count - maxItems} more (tap to see all)");
-                }
+#pragma warning disable CA1422
+                remoteViews.SetRemoteAdapter(Resource.Id.widget_list, serviceIntent);
+#pragma warning restore CA1422
+                
+                // Set the empty view for the ListView
+                remoteViews.SetEmptyView(Resource.Id.widget_list, Resource.Id.widget_empty);
             }
 
-            remoteViews.SetTextViewText(Resource.Id.widget_text, sb);
-
-            // Create intent to launch app when widget is clicked
+            // Create intent to launch app when widget header is clicked
             var intent = new Intent(context, typeof(MainActivity));
             intent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
             
@@ -105,9 +70,20 @@ public class TodoWidgetProvider : AppWidgetProvider
 #pragma warning restore CA1416
             
             var pendingIntent = PendingIntent.GetActivity(context, 0, intent, flags);
-            remoteViews.SetOnClickPendingIntent(Resource.Id.widget_container, pendingIntent);
+            remoteViews.SetOnClickPendingIntent(Resource.Id.widget_header, pendingIntent);
+            
+            // Set up template intent for list item clicks
+            var templateIntent = new Intent(context, typeof(MainActivity));
+            templateIntent.SetFlags(ActivityFlags.NewTask | ActivityFlags.ClearTask);
+            var clickPendingIntent = PendingIntent.GetActivity(context, 0, templateIntent, flags);
+            remoteViews.SetPendingIntentTemplate(Resource.Id.widget_list, clickPendingIntent);
 
             appWidgetManager.UpdateAppWidget(appWidgetId, remoteViews);
+            
+            // Notify the AppWidgetManager to refresh the list data
+#pragma warning disable CA1422
+            appWidgetManager.NotifyAppWidgetViewDataChanged(appWidgetId, Resource.Id.widget_list);
+#pragma warning restore CA1422
         }
         catch (Exception ex)
         {

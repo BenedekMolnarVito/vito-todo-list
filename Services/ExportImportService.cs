@@ -19,6 +19,11 @@ public class ExportImportService
         try
         {
             var items = JsonSerializer.Deserialize<List<TodoItem>>(json);
+            // Reverse the order of imported items
+            if (items != null)
+            {
+                items.Reverse();
+            }
             return Task.FromResult(items);
         }
         catch

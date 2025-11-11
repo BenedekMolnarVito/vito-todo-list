@@ -30,16 +30,27 @@ A complete Android Todo List application built with .NET MAUI targeting Android 
   - `minResizeWidth="110dp"`, `minResizeHeight="40dp"`
   - `resizeMode="horizontal|vertical"`
 
-#### First n items on home screen - ✅
-- Widget displays first 5 items (configurable via SharedPreferences)
-- Shows "... and X more" if list is longer
-- Completed items marked with ✓, incomplete with ○
-- Layout in `todo_widget.xml`
+#### Scrollable List - ✅ NEW
+- **Implemented using RemoteViews collection architecture**
+- Uses ListView backed by RemoteViewsService and RemoteViewsFactory
+- `TodoWidgetService.cs` - RemoteViewsService implementation
+- `TodoWidgetFactory.cs` - Loads and provides todo items dynamically
+- `todo_widget_item.xml` - Layout for individual list items
+- Supports unlimited items with native Android scrolling
+- No item limit - can scroll through entire todo list
+
+#### Display Items - ✅
+- Widget displays **all** todo items in scrollable list
+- Completed items marked with ✓, incomplete with •
+- Formatted text with strikethrough for completed items
+- Deadline displayed in red color
+- Layout in `todo_widget.xml` and `todo_widget_item.xml`
 
 #### Tap to open app - ✅
 - `PendingIntent` configured in `TodoWidgetProvider.cs`
 - Opens MainActivity with proper flags
 - Uses API-compatible flags (Immutable flag only on API 23+)
+- Individual list items also clickable
 
 #### Reordering - ✅
 - Up/Down buttons in `MainPage.xaml` for each item
@@ -124,12 +135,21 @@ TodoEditPage.xaml/cs - Add/Edit form
 Platforms/Android/Widgets/
 ├── TodoWidgetProvider.cs - Main widget logic
 │   ├── OnUpdate() - System callback
-│   ├── UpdateAppWidget() - Update widget UI
+│   ├── UpdateAppWidget() - Update widget UI with RemoteViews
 │   └── UpdateAllWidgets() - Refresh all widgets
+├── TodoWidgetService.cs - RemoteViewsService
+│   └── OnGetViewFactory() - Provides factory instance
+├── TodoWidgetFactory.cs - RemoteViewsFactory
+│   ├── OnCreate() - Initialize data
+│   ├── OnDataSetChanged() - Refresh data
+│   ├── GetViewAt() - Build view for each item
+│   └── LoadDataAsync() - Async data loading
 └── WidgetUpdateHelper.cs - Cross-platform helper
 
 Platforms/Android/Resources/
-├── layout/todo_widget.xml - Widget UI layout
+├── layout/
+│   ├── todo_widget.xml - Widget container with ListView
+│   └── todo_widget_item.xml - Individual list item layout
 └── xml/todo_widget_info.xml - Widget metadata
 ```
 
@@ -142,10 +162,11 @@ Converters/
 ```
 
 ## Build Status
-- ✅ **Build**: Successful (0 errors, 15 warnings)
+- ✅ **Build**: Successful (0 errors, 21 warnings)
 - ✅ **Security**: CodeQL scan passed (0 vulnerabilities)
 - ✅ **Target**: .NET 9.0 Android API 35
-- ✅ **Lines of Code**: ~1,459 lines (C# + XAML)
+- ✅ **Lines of Code**: ~1,658 lines (C# + XAML)
+- ✅ **Widget Architecture**: RemoteViews collection with scrolling support
 
 ## Dependencies
 - Microsoft.Maui.Controls (9.0.x)
@@ -163,9 +184,10 @@ The application successfully:
 6. ✅ Follows .NET MAUI best practices
 
 ## Warnings (Non-Critical)
-- 15 XAML binding compilation warnings (optimization suggestions)
+- 21 XAML binding compilation warnings (optimization suggestions)
 - These do not affect functionality
 - Can be addressed by adding `x:DataType` attributes if desired
+- API deprecation warnings suppressed with `#pragma warning disable CA1422` (required for Android API 35 compatibility)
 
 ## Conclusion
 All requirements from the problem statement have been successfully implemented using .NET MAUI for Android. The application provides a full-featured todo list experience with SQLite persistence, Android widget support, and data export/import/share capabilities.

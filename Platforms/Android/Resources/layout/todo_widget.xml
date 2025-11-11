@@ -1,17 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFEB3B"
-    android:padding="12dp">
+    android:orientation="vertical"
+    android:padding="8dp"
+    android:background="#FFEB3B">
+
+    <ListView
+        android:id="@+id/widget_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <TextView
-        android:id="@+id/widget_text"
+        android:id="@+id/empty_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="Loading..."
-        android:textSize="15sp"
-        android:textColor="#000000"
-        android:lineSpacingExtra="4dp" />
-</FrameLayout>
+        android:gravity="center"
+        android:text="No todos yet!\nTap to open app."
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+</LinearLayout>

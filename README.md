@@ -14,7 +14,8 @@ A feature-rich Todo List application for Android built with .NET MAUI, targeting
 ### Advanced Features
 - **Android Home Screen Widget**
   - Resizable widget showing your todo items
-  - Displays first n items on the home screen
+  - **Scrollable list** - view unlimited todo items with native scrolling
+  - Uses RemoteViews collection for optimal performance
   - Tap to open the full app
   - Auto-updates when todos change
   
@@ -52,10 +53,13 @@ VitoTodoList/
 │   └── Android/
 │       ├── Widgets/
 │       │   ├── TodoWidgetProvider.cs    # Widget implementation
+│       │   ├── TodoWidgetService.cs     # RemoteViewsService for widget
+│       │   ├── TodoWidgetFactory.cs     # RemoteViewsFactory for data
 │       │   └── WidgetUpdateHelper.cs    # Widget update helper
 │       └── Resources/
 │           ├── layout/
-│           │   └── todo_widget.xml      # Widget layout
+│           │   ├── todo_widget.xml      # Widget layout
+│           │   └── todo_widget_item.xml # Widget list item layout
 │           └── xml/
 │               └── todo_widget_info.xml # Widget configuration
 ├── MainPage.xaml                # Main todo list UI
@@ -146,10 +150,12 @@ dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
 ## Widget Behavior
 
 - Updates automatically when todos are added, edited, deleted, or reordered
-- Shows up to 5 items by default (configurable)
+- **Scrollable ListView** - displays all todo items with native Android scrolling
+- Uses RemoteViewsService and RemoteViewsFactory architecture
 - Completed items shown with ✓, incomplete with ○
-- Truncates long titles to fit widget size
-- Shows count of additional items if list is longer than display limit
+- Supports formatted text (strikethrough for completed, red deadline dates)
+- Empty state message when no todos exist
+- Individual item click support (opens main app)
 
 ## License
 

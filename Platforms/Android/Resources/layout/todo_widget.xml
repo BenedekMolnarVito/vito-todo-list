@@ -3,34 +3,22 @@
     android:id="@+id/widget_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFEB3B"
     android:orientation="vertical"
-    android:padding="12dp">
-
-    <TextView
-        android:id="@+id/widget_header"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="My Todos"
-        android:textSize="16sp"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        android:paddingBottom="8dp" />
+    android:padding="8dp"
+    android:background="#FFFFFF">
 
     <ListView
         android:id="@+id/widget_list"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:divider="@null"
-        android:dividerHeight="0dp" />
+        android:layout_height="match_parent" />
 
     <TextView
-        android:id="@+id/widget_empty"
+        android:id="@+id/empty_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="No todos yet!\nTap to open app."
-        android:textSize="15sp"
-        android:textColor="#000000"
         android:gravity="center"
+        android:text="No todos yet!\nTap to open app."
+        android:textSize="14sp"
         android:visibility="gone" />
+
 </LinearLayout>

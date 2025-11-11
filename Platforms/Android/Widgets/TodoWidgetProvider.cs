@@ -31,29 +31,42 @@ public class TodoWidgetProvider : AppWidgetProvider
         {
             var database = new TodoDatabase();
             var todos = await database.GetItemsAsync();
-            
-            // Get widget size preferences
-            var prefs = context.GetSharedPreferences("TodoWidget", FileCreationMode.Private);
-            var maxItems = prefs?.GetInt($"widget_{appWidgetId}_maxItems", 5) ?? 5;
 
             // Build the widget content
             var remoteViews = new RemoteViews(context.PackageName, Resource.Layout.todo_widget);
             
             var sb = new SpannableStringBuilder();
-            var itemCount = Math.Min(todos.Count, maxItems);
             
             if (todos.Count == 0)
             {
-                sb.Append("No todos yet!");
+                sb.Append("No todos yet!\nTap to open app.");
             }
             else
             {
-                for (int i = 0; i < itemCount; i++)
+                // Show up to 15 items in widget (to fit in most widget sizes)
+                int maxItems = Math.Min(todos.Count, 15);
+                
+                for (int i = 0; i < maxItems; i++)
                 {
                     var todo = todos[i];
                     // Use bullet point for each item
-                    sb.Append("• ");
+                    sb.Append(todo.IsCompleted ? "✓ " : "• ");
+                    
+                    // Store the start position for the title
+                    int titleStart = sb.Length();
                     sb.Append(todo.Title);
+                    
+                    // Apply strikethrough if completed
+                    if (todo.IsCompleted)
+                    {
+                        sb.SetSpan(new StrikethroughSpan(), titleStart, sb.Length(), SpanTypes.ExclusiveExclusive);
+                    }
+                    
+                    // Add '(...)' if description exists
+                    if (!string.IsNullOrWhiteSpace(todo.Description))
+                    {
+                        sb.Append(" (...)");
+                    }
                     
                     // Add deadline in red if it exists
                     if (todo.Deadline.HasValue)
@@ -64,15 +77,16 @@ public class TodoWidgetProvider : AppWidgetProvider
                         sb.SetSpan(new ForegroundColorSpan(global::Android.Graphics.Color.Red), start, sb.Length(), SpanTypes.ExclusiveExclusive);
                     }
                     
-                    if (i < itemCount - 1)
+                    if (i < maxItems - 1)
                     {
                         sb.Append("\n");
                     }
                 }
                 
+                // Add indicator if there are more items
                 if (todos.Count > maxItems)
                 {
-                    sb.Append($"\n... and {todos.Count - maxItems} more");
+                    sb.Append($"\n\n+ {todos.Count - maxItems} more (tap to see all)");
                 }
             }
 

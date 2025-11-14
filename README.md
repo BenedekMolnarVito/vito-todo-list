@@ -28,6 +28,13 @@ A feature-rich Todo List application for Android built with .NET MAUI, targeting
   - Share your todo list via any installed app
   - Compatible with Google Drive, OneDrive, email, etc.
 
+- **Automatic Backup to Google Drive** ⭐ NEW
+  - Daily automatic backup at 3 AM
+  - Uploads todo list as JSON to your Google Drive
+  - Offline queue - backups are queued when device is offline
+  - Automatic retry with exponential backoff
+  - See [GOOGLE_DRIVE_SETUP.md](GOOGLE_DRIVE_SETUP.md) for setup instructions
+
 ## Technology Stack
 
 - **.NET MAUI 9.0** - Cross-platform framework
@@ -44,7 +51,9 @@ VitoTodoList/
 ├── Data/
 │   └── TodoDatabase.cs          # SQLite database access
 ├── Services/
-│   └── ExportImportService.cs   # JSON export/import logic
+│   ├── ExportImportService.cs   # JSON export/import logic
+│   ├── GoogleDriveService.cs    # Google Drive backup service
+│   └── BackupQueueService.cs    # Offline backup queue
 ├── Converters/
 │   ├── BoolToTextDecorationConverter.cs
 │   ├── StringToBoolConverter.cs
@@ -56,6 +65,9 @@ VitoTodoList/
 │       │   ├── TodoWidgetService.cs     # RemoteViewsService for widget
 │       │   ├── TodoWidgetFactory.cs     # RemoteViewsFactory for data
 │       │   └── WidgetUpdateHelper.cs    # Widget update helper
+│       ├── BackgroundJobs/
+│       │   ├── DailyBackupWorker.cs     # WorkManager backup worker
+│       │   └── BackupScheduler.cs       # Backup job scheduler
 │       └── Resources/
 │           ├── layout/
 │           │   ├── todo_widget.xml      # Widget layout
@@ -134,6 +146,13 @@ dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
 
 ### Sharing
 - Click "Share" to share your todo list via installed apps (email, cloud storage, etc.)
+
+### Automatic Backup
+- **Setup Required**: Follow [GOOGLE_DRIVE_SETUP.md](GOOGLE_DRIVE_SETUP.md) to configure Google Drive authentication
+- Backups run automatically every day at 3 AM
+- Files are saved to your Google Drive folder: `VitoTodoList_BCP`
+- If offline at backup time, the backup is queued and retried when online
+- Up to 5 retry attempts with exponential backoff
 
 ## Database Schema
 

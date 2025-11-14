@@ -85,6 +85,62 @@ A complete Android Todo List application built with .NET MAUI targeting Android 
   - Email clients
   - Any app that handles file sharing
 
+### 6. Automatic Google Drive Backup - ✅ COMPLETE
+**Location:** `Services/`, `Platforms/Android/BackgroundJobs/`
+
+#### Daily Backup at 3 AM - ✅
+- **Implementation:** Android WorkManager with PeriodicWorkRequest
+- `BackupScheduler.cs` - Schedules backup job on app launch
+- `DailyBackupWorker.cs` - Worker that performs the backup
+- Runs daily at 3 AM with network connectivity constraint
+- Initial delay calculation to next 3 AM
+- 24-hour repeat interval
+
+#### Google Drive Integration - ✅
+- **Service:** `GoogleDriveService.cs`
+- Uses Google Drive API v3 (Google.Apis.Drive.v3 NuGet package)
+- OAuth2 authentication support
+- Uploads to specific folder: `VitoTodoList_BCP` (ID: 1zmGasFxgsfpqevZ06G-R04dvNsG3zsWL)
+- File format: `todos_backup_YYYYMMDD_030000.json`
+- Credentials stored in app data directory
+- Authentication check before backup attempt
+
+#### Offline Queue - ✅
+- **Service:** `BackupQueueService.cs`
+- Simple message queue implementation using JSON file storage
+- Enqueues backups when device is offline
+- Stores: JSON content, filename, scheduled time, retry count, status
+- Automatic retry with exponential backoff (up to 5 attempts)
+- Processes queued backups when connection is restored
+- Auto-cleanup of old completed/failed backups (>7 days)
+
+#### Background Job Features - ✅
+- Network connectivity check before upload
+- Authentication status verification
+- Automatic queue processing on successful upload
+- WorkManager retry policy with exponential backoff (30 min initial)
+- Debug logging throughout the backup process
+- Graceful failure handling
+
+#### Security & Permissions - ✅
+- Added permissions in AndroidManifest.xml:
+  - `SCHEDULE_EXACT_ALARM` - For precise 3 AM scheduling
+  - `POST_NOTIFICATIONS` - For backup status notifications
+  - `INTERNET` - For Google Drive uploads
+  - `ACCESS_NETWORK_STATE` - For connectivity checks
+- MinSdkVersion updated to 23 (required by WorkManager dependencies)
+- Secure credential storage in app data directory
+- OAuth2 flow for user authentication
+
+#### Documentation - ✅
+- **File:** `GOOGLE_DRIVE_SETUP.md`
+- Comprehensive setup guide for Google Drive authentication
+- Instructions for Google Cloud Console setup
+- OAuth2 client ID configuration
+- Service account alternative
+- Troubleshooting section
+- Security best practices
+
 ## Technical Architecture
 
 ### Database Layer
@@ -130,6 +186,33 @@ TodoEditPage.xaml/cs - Add/Edit form
 └── Save/Cancel buttons
 ```
 
+### Backup Services
+```
+Services/
+├── GoogleDriveService.cs - Google Drive API integration
+│   ├── UploadBackupAsync() - Upload JSON to Drive
+│   ├── GetCredentialAsync() - OAuth2 credential management
+│   ├── AuthenticateAsync() - OAuth2 authentication flow
+│   └── IsAuthenticated() - Check authentication status
+└── BackupQueueService.cs - Offline backup queue
+    ├── EnqueueBackupAsync() - Add to queue
+    ├── GetPendingBackupsAsync() - Retrieve pending
+    ├── MarkAsCompletedAsync() - Mark successful
+    ├── MarkAsFailedAsync() - Mark failed with retry
+    └── CleanupOldBackupsAsync() - Remove old items
+
+Platforms/Android/BackgroundJobs/
+├── DailyBackupWorker.cs - WorkManager worker
+│   ├── DoWork() - Worker entry point
+│   ├── PerformBackupAsync() - Backup logic
+│   └── ProcessQueuedBackupsAsync() - Process queue
+└── BackupScheduler.cs - Job scheduling
+    ├── ScheduleDailyBackup() - Schedule at 3 AM
+    ├── CancelDailyBackup() - Cancel scheduled job
+    ├── TriggerImmediateBackup() - Manual trigger
+    └── IsBackupScheduled() - Check job status
+```
+
 ### Widget System
 ```
 Platforms/Android/Widgets/
@@ -173,6 +256,8 @@ Converters/
 - Microsoft.Extensions.Logging.Debug (9.0.8)
 - sqlite-net-pcl (1.9.172)
 - SQLitePCLRaw.bundle_green (2.1.10)
+- Google.Apis.Drive.v3 (1.72.0.3944) - Google Drive API
+- Xamarin.AndroidX.Work.Runtime (2.10.5) - Background job scheduling
 
 ## Testing Notes
 The application successfully:

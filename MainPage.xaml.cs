@@ -39,6 +39,7 @@ public partial class MainPage : ContentPage
         _todos.Clear();
         foreach (var item in items)
         {
+            if (item.Deadline.HasValue && item.Deadline.Value <= DateTime.Now) item.IsCompleted = true;
             _todos.Add(item);
         }
         TodoListView.ItemsSource = _todos;
@@ -213,7 +214,7 @@ public partial class MainPage : ContentPage
 
     private async void OnEditTodoClicked(object? sender, EventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is TodoItem item)
+        if (sender is Frame frame && frame.BindingContext is TodoItem item)
         {
             await Navigation.PushAsync(new TodoEditPage(_database, item));
         }

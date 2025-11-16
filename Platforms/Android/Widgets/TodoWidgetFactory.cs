@@ -103,13 +103,17 @@ namespace VitoTodoList.Platforms.Android.Widgets
                 if (item.Deadline.HasValue)
                 {
                     var now = DateTime.Now;
-                    var daysUntilDeadline = (item.Deadline.Value - now).TotalDays;
-                    
-                    // Use day of week in Hungarian if within 7 days
-                    string deadlineText;
-                    if (daysUntilDeadline >= 0 && daysUntilDeadline <= 7)
+                    var daysUntilDeadline = (item.Deadline.Value.Date - now.Date).TotalDays;
+                    var isTimeZero = item.Deadline.Value.TimeOfDay == TimeSpan.Zero;
+                    string dayOfWeek = string.Empty;
+
+                    if (item.Deadline.Value.Date == now.Date)
                     {
-                        var dayOfWeek = item.Deadline.Value.DayOfWeek switch
+                        dayOfWeek = "ma";
+                    }
+                    else if (daysUntilDeadline > 0 && daysUntilDeadline <= 7)
+                    {
+                        dayOfWeek = item.Deadline.Value.DayOfWeek switch
                         {
                             DayOfWeek.Monday => "hétfő",
                             DayOfWeek.Tuesday => "kedd",
@@ -120,13 +124,16 @@ namespace VitoTodoList.Platforms.Android.Widgets
                             DayOfWeek.Sunday => "vasárnap",
                             _ => item.Deadline.Value.ToString("MMM dd")
                         };
-                        deadlineText = $"{dayOfWeek} {item.Deadline.Value:HH:mm}";
                     }
                     else
                     {
-                        deadlineText = item.Deadline.Value.ToString("MMM dd, HH:mm");
+                        dayOfWeek = item.Deadline.Value.ToString("MMM dd");
                     }
-                    
+
+                    string deadlineText = isTimeZero 
+                        ? dayOfWeek 
+                        : $"{dayOfWeek} {item.Deadline.Value:HH:mm}";
+
                     var deadlineBuilder = new SpannableStringBuilder(deadlineText);
                     deadlineBuilder.SetSpan(
                         new ForegroundColorSpan(global::Android.Graphics.Color.Red),

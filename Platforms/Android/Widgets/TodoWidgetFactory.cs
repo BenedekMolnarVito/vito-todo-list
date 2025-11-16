@@ -120,7 +120,18 @@ namespace VitoTodoList.Platforms.Android.Widgets
                             DayOfWeek.Sunday => "vasárnap",
                             _ => item.Deadline.Value.ToString("MMM dd")
                         };
-                        deadlineText = $"{dayOfWeek} {item.Deadline.Value:HH:mm}";
+                        if (Math.Abs(daysUntilDeadline) < 1)
+                        {
+                            dayOfWeek = "";
+                        }
+                        if (item.Deadline.Value.ToString("HH:mm") == "00:00")
+                        {
+                            deadlineText = dayOfWeek;
+                        }
+                        else
+                        {
+                            deadlineText = $"{dayOfWeek} {item.Deadline.Value:HH:mm}";
+                        }
                     }
                     else
                     {

@@ -51,12 +51,13 @@
                                BackgroundColor="{StaticResource YellowLight}"
                                BorderColor="{StaticResource YellowMedium}">
                             <Frame.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnEditTodoClicked" />
                                 <DragGestureRecognizer DragStarting="OnDragStarting" />
                                 <DropGestureRecognizer Drop="OnDrop" 
                                                       DragOver="OnDragOver"
                                                       AllowDrop="True" />
                             </Frame.GestureRecognizers>
-                            <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                            <Grid ColumnDefinitions="Auto,Auto,*">
                                 <!-- Drag Handle -->
                                 <Label Grid.Column="0"
                                        Text="☰"
@@ -79,20 +80,15 @@
                                     <Label Text="{Binding Description}" 
                                            FontSize="12"
                                            TextColor="Black"
+                                           LineBreakMode="TailTruncation"
+                                           MaxLines="3"
                                            IsVisible="{Binding Description, Converter={StaticResource StringToBoolConverter}}"/>
+
                                     <Label Text="{Binding Deadline, StringFormat='Due: {0:MMM dd, HH:mm}'}" 
                                            FontSize="10"
                                            TextColor="Red"
                                            IsVisible="{Binding Deadline, Converter={StaticResource HasValueConverter}}"/>
                                 </VerticalStackLayout>
-
-                                <Button Grid.Column="3"
-                                       Text="Edit"
-                                       Clicked="OnEditTodoClicked"
-                                       CommandParameter="{Binding .}"
-                                       BackgroundColor="{StaticResource YellowDark}"
-                                       TextColor="White"
-                                       VerticalOptions="Center"/>
                             </Grid>
                         </Frame>
                     </SwipeView>

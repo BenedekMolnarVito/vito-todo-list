@@ -213,7 +213,7 @@ public partial class MainPage : ContentPage
 
     private async void OnEditTodoClicked(object? sender, EventArgs e)
     {
-        if (sender is Button button && button.CommandParameter is TodoItem item)
+        if (sender is Frame frame && frame.BindingContext is TodoItem item)
         {
             await Navigation.PushAsync(new TodoEditPage(_database, item));
         }

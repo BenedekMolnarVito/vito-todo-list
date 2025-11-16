@@ -149,6 +149,7 @@ public class BackupQueueService
         {
             if (!File.Exists(_queueFilePath))
             {
+                System.Diagnostics.Debug.WriteLine($"BackupQueue: Queue file not found at {_queueFilePath}, initializing new queue.");
                 return new List<BackupQueueItem>();
             }
 
@@ -157,6 +158,7 @@ public class BackupQueueService
         }
         catch
         {
+            System.Diagnostics.Debug.WriteLine($"BackupQueue: Failed to load queue from {_queueFilePath}.");
             return new List<BackupQueueItem>();
         }
     }

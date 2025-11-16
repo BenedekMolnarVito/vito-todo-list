@@ -47,7 +47,7 @@ public static class BackupScheduler
             backupRequestBuilder.AddTag(BackupWorkTag);
             backupRequestBuilder.SetBackoffCriteria(
                 BackoffPolicy.Exponential!,
-                30, // Initial backoff delay
+                300, // Initial backoff delay
                 TimeUnit.Minutes!);
             
             var backupRequest = backupRequestBuilder.Build();

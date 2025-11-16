@@ -331,10 +331,197 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async void OnSetupBackupClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var driveService = new GoogleDriveService();
+            
+            // Check if already authenticated
+            if (driveService.IsAuthenticated())
+            {
+                var reset = await DisplayAlert("Already Setup", 
+                    "Backup is already configured. Do you want to re-authenticate?", 
+                    "Yes", "No");
+                
+                if (!reset)
+                    return;
+                    
+                await driveService.RevokeAuthenticationAsync();
+            }
+
+            // Prompt user to paste OAuth credentials JSON
+            var credentialsJson = await DisplayPromptAsync(
+                "Setup Google Drive Backup",
+                "Paste your OAuth 2.0 Client ID JSON from Google Cloud Console:\n\n" +
+                "1. Go to console.cloud.google.com\n" +
+                "2. APIs & Services → Credentials\n" +
+                "3. Download OAuth 2.0 Client ID JSON\n" +
+                "4. Paste the entire JSON content below:",
+                placeholder: "{\"installed\":{...}}",
+                maxLength: 10000,
+                keyboard: Keyboard.Text
+            );
+
+            if (string.IsNullOrWhiteSpace(credentialsJson))
+            {
+                await DisplayAlert("Cancelled", "Backup setup cancelled.", "OK");
+                return;
+            }
+
+            // Try automatic authentication first, with fallback to manual
+            var useManual = await DisplayAlert("Authentication Method",
+                "Choose authentication method:\n\n" +
+                "AUTO: App tries to open browser (may not work on MIUI/HyperOS)\n" +
+                "MANUAL: You open browser yourself and paste code",
+                "Manual", "Auto");
+
+            bool success = false;
+            
+            if (useManual)
+            {
+                // Manual method - more reliable on restricted devices
+                success = await AuthenticateManuallyAsync(driveService, credentialsJson);
+            }
+            else
+            {
+                // Automatic method
+                try
+                {
+                    success = await driveService.AuthenticateAsync(credentialsJson);
+                }
+                catch (Exception authEx)
+                {
+                    var retry = await DisplayAlert("Auto Failed", 
+                        $"Automatic authentication failed: {authEx.Message}\n\n" +
+                        "Try manual method instead?", 
+                        "Yes", "No");
+                    
+                    if (retry)
+                    {
+                        success = await AuthenticateManuallyAsync(driveService, credentialsJson);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                }
+            }
+
+            if (success)
+            {
+                await DisplayAlert("Success", 
+                    "Google Drive backup is now configured!\n\n" +
+                    "Background backups will run automatically at 3 AM daily.\n" +
+                    "You can also use 'Backup Now' to test it.", 
+                    "OK");
+            }
+            else
+            {
+                await DisplayAlert("Failed", 
+                    "Authentication failed. Please try again.", 
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Setup failed: {ex.Message}", "OK");
+        }
+    }
+
+    private async Task<bool> AuthenticateManuallyAsync(GoogleDriveService driveService, string credentialsJson)
+    {
+        try
+        {
+            // Generate auth URL and copy to clipboard
+            var authUrl = await driveService.GetAuthenticationUrlAsync(credentialsJson);
+            
+            if (string.IsNullOrEmpty(authUrl))
+            {
+                await DisplayAlert("Error", "Failed to generate authentication URL", "OK");
+                return false;
+            }
+
+            await Clipboard.SetTextAsync(authUrl);
+            
+            await DisplayAlert("Manual Authentication - Step 1",
+                "Authentication URL copied to clipboard!\n\n" +
+                "Next steps:\n" +
+                "1. Open Chrome or Firefox\n" +
+                "2. Long-press address bar → Paste\n" +
+                "3. Sign in with Google\n" +
+                "4. Click 'Allow' to grant access\n" +
+                "5. Browser tries to open custom URL (fails)\n" +
+                "6. You'll see error like 'Can't open URL'\n" +
+                "7. Click 'Copy link' or long-press the failed URL\n" +
+                "8. Copy the ENTIRE URL starting with 'com.google...'\n\n" +
+                "Tap OK when you have the URL copied.",
+                "OK");
+
+            // Prompt for the full redirect URL
+            var redirectUrl = await DisplayPromptAsync(
+                "Manual Authentication - Step 2",
+                "Paste the ENTIRE redirect URL here.\n\n" +
+                "After clicking Allow, browser shows an error.\n" +
+                "Copy the failed URL that looks like:\n" +
+                "com.googleusercontent.apps.XXX:/oauth2redirect?code=4/0Adeu5B...\n\n" +
+                "Paste the complete URL below:",
+                placeholder: "com.googleusercontent.apps...",
+                maxLength: 1000,
+                keyboard: Keyboard.Text
+            );
+
+            if (string.IsNullOrWhiteSpace(redirectUrl))
+            {
+                await DisplayAlert("Cancelled", "No URL entered.", "OK");
+                return false;
+            }
+
+            // Extract code from the redirect URL
+            string? authCode = null;
+            redirectUrl = redirectUrl.Trim();
+            
+            if (redirectUrl.Contains("code="))
+            {
+                var codeStart = redirectUrl.IndexOf("code=") + 5;
+                var codeEnd = redirectUrl.IndexOf("&", codeStart);
+                if (codeEnd == -1)
+                    codeEnd = redirectUrl.Length;
+                authCode = redirectUrl.Substring(codeStart, codeEnd - codeStart);
+            }
+            else
+            {
+                await DisplayAlert("Error", "No authorization code found in URL. Please make sure you copied the complete redirect URL.", "OK");
+                return false;
+            }
+
+            // Complete authentication with the code
+            var success = await driveService.CompleteAuthenticationAsync(credentialsJson, authCode);
+            
+            return success;
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Manual authentication failed: {ex.Message}", "OK");
+            return false;
+        }
+    }
+
     private async void OnBackupNowClicked(object? sender, EventArgs e)
     {
         try
         {
+            var driveService = new GoogleDriveService();
+            
+            // Check if authenticated
+            if (!driveService.IsAuthenticated())
+            {
+                await DisplayAlert("Not Setup", 
+                    "Please setup Google Drive backup first using the 'Setup Backup' button.", 
+                    "OK");
+                return;
+            }
+
 #if ANDROID
             VitoTodoList.Platforms.Android.BackgroundJobs.BackupScheduler.TriggerImmediateBackup(Android.App.Application.Context);
             await DisplayAlert("Success", "Backup job queued! It will run when connected to the internet.", "OK");

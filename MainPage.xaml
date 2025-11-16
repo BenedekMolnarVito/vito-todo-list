@@ -33,8 +33,13 @@
                             HorizontalOptions="Start"/>
                 </HorizontalStackLayout>
 
-                <!-- Second row with the new button -->
+                <!-- Second row with backup buttons -->
                 <HorizontalStackLayout Grid.Row="1" Spacing="10">
+                    <Button Text="Setup Backup" 
+                            Clicked="OnSetupBackupClicked"
+                            BackgroundColor="{StaticResource YellowDark}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
                     <Button Text="Backup Now" 
                             Clicked="OnBackupNowClicked"
                             BackgroundColor="{StaticResource YellowDark}"

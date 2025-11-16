@@ -53,7 +53,6 @@
 	<ItemGroup Condition="'$(TargetFramework)' == 'net9.0-android35.0'">
 		<AndroidResource Include="Platforms\Android\Resources\**\*.xml" />
 		<AndroidResource Include="Platforms\Android\Resources\**\*.axml" />
-		<AndroidResource Include="Platforms\Android\Resources\raw\service_account.json" />
 	</ItemGroup>
 
 </Project>

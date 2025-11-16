@@ -19,6 +19,10 @@ The app includes automatic daily backup functionality that uploads your todo lis
 
 ### 3. Create OAuth 2.0 Credentials
 
+**⚠️ CRITICAL: You need TWO credential types - Android AND iOS (for custom scheme)**
+
+#### Part A: Create Android OAuth Client
+
 1. Go to **APIs & Services** → **Credentials**
 2. Click **Create Credentials** → **OAuth client ID**
 3. Choose **Android** as the application type
@@ -29,8 +33,57 @@ The app includes automatic daily backup functionality that uploads your todo lis
      ```bash
      keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
      ```
+     Or on Windows:
+     ```powershell
+     keytool -list -v -keystore "$env:USERPROFILE\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+     ```
 5. Click **Create**
-6. Note down your **Client ID** - you'll need this
+
+#### Part B: Create iOS OAuth Client
+
+1. Click **Create Credentials** → **OAuth client ID** again
+2. Choose **iOS** as the application type
+3. Enter the following:
+   - **Name**: VitoTodoList iOS
+   - **Bundle ID**: `app.servimus.vitotodolist`
+4. Click **Create**
+5. You'll see it downloads a `.plist` file - **ignore this for now**
+
+#### Part C: Get Client ID and Secret
+
+Since iOS clients don't provide JSON download, you need to create it manually:
+
+1. Click on your **iOS OAuth client** name to view details
+2. Copy the **Client ID** (looks like: `192162290350-xxx.apps.googleusercontent.com`)
+3. Note: iOS clients don't have a client secret shown, so we'll use a placeholder
+
+4. Create a JSON file with this format:
+   ```json
+   {
+     "installed": {
+       "client_id": "YOUR_CLIENT_ID_FROM_STEP_2",
+       "client_secret": "",
+       "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"],
+       "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+       "token_uri": "https://oauth2.googleapis.com/token"
+     }
+   }
+   ```
+
+**Example** (using your Client ID from the screenshot):
+```json
+{
+  "installed": {
+    "client_id": "192162290350-s12ksv6qse7lvnakljmlbiqv35vfui6p.apps.googleusercontent.com",
+    "client_secret": "",
+    "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"],
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token"
+  }
+}
+```
+
+5. Copy this entire JSON - this is what you'll paste in the app
 
 ### 4. Configure OAuth Consent Screen
 
@@ -45,31 +98,78 @@ The app includes automatic daily backup functionality that uploads your todo lis
 
 ## App Configuration
 
-### Service Account Setup (Current Implementation)
+### OAuth 2.0 Setup (Current Implementation)
 
-The app uses service account authentication for fully automated backups without user interaction. The setup is complete:
+The app uses **OAuth 2.0 user authentication** for Google Drive backups. This requires **one-time user authentication**, after which background backups work automatically.
 
-1. **Service account JSON location**: `Platforms/Android/Resources/raw/service_account.json`
-2. **Service account email**: `vitotodolist-service-account@vitotodolist.iam.gserviceaccount.com`
-3. **Required setup**:
-   - Service account JSON is embedded as an Android raw resource
-   - The JSON key is compiled into the APK/AAB
-   - No user authentication required - backups run automatically
+#### How It Works
 
-**Important**: Make sure the Google Drive folder (`VitoTodoList_BCP`) is shared with the service account email address with **Editor** permissions.
+1. **First-time setup** (one-time only):
+   - User taps "Setup Backup" button in the app
+   - Pastes OAuth 2.0 credentials JSON
+   - Browser opens for Google sign-in
+   - User grants permission to access Drive
+   - App stores refresh token locally
 
-### How It Works
+2. **Background backups** (automatic):
+   - Daily at 3 AM, WorkManager runs backup job
+   - Uses stored refresh token to get new access token
+   - No user interaction needed
+   - Refresh token doesn't expire unless revoked
 
-- The `GoogleDriveService` loads credentials from the embedded resource at runtime
-- Service accounts authenticate directly with Google APIs without user interaction
-- The backup runs completely in the background via WorkManager
-- No OAuth consent screen or browser interaction needed
+3. **Token refresh**:
+   - Access tokens expire after ~1 hour
+   - Google APIs library automatically uses refresh token to get new access tokens
+   - This happens transparently in background jobs
+   - No user sees this happening
 
-**Security Note**: The service account key is embedded in the app. For production:
-- Use ProGuard/R8 obfuscation
-- Consider encrypted asset storage
-- Rotate keys regularly
-- Never commit the key to public repositories
+#### Initial Setup Steps
+
+1. **Get OAuth 2.0 Credentials from Google Cloud Console**:
+   - Go to https://console.cloud.google.com/
+   - Select your project: **vitotodolist**
+   - Go to **APIs & Services** → **Credentials**
+   - Find your Android OAuth 2.0 Client ID
+   - Click the **Download JSON** button (download icon)
+   - Open the downloaded JSON file and copy its entire contents
+
+2. **Configure in the App**:
+   - Open VitoTodoList app
+   - Tap **"Setup Backup"** button
+   - When prompted, paste the entire OAuth JSON credentials
+   - Tap **OK**
+   - A browser (Chrome/Firefox) will open automatically
+   - Sign in with your Google account
+   - Click **"Allow"** to grant Drive access
+   - Browser will close and return to app
+   - You'll see "Google Drive backup is now configured!" message
+
+3. **Test the Setup**:
+   - Tap **"Backup Now"** to test immediately
+   - Check your Google Drive folder: **VitoTodoList_BCP**
+   - You should see a JSON backup file with timestamp
+
+**Troubleshooting**:
+- **"400 invalid_request - loopback flow blocked"**: Use the **iOS credential**, not Android
+- **Browser doesn't open (MIUI/HyperOS)**: Use "Manual" method - works on all devices
+- **"Authentication failed"**: Check that:
+  - You're using the **iOS credential JSON** (created manually from client ID)
+  - The JSON format is correct (starts with `{"installed":...`)
+  - The client_id is copied exactly from Google Cloud Console
+- **"redirect_uri_mismatch"**: The app automatically generates the correct redirect URI from your client ID
+
+#### Important Notes
+
+- **One-time authentication**: You only need to authenticate once. After that, background jobs work automatically.
+- **Refresh tokens**: These don't expire unless you revoke access in your Google account settings.
+- **Re-authentication**: If you revoke access, just tap "Setup Backup" again.
+- **Security**: OAuth tokens are stored in the app's private data directory, not accessible by other apps.
+
+#### Folder Requirements
+
+- **Folder Name**: `VitoTodoList_BCP`
+- **Folder ID**: `1zmGasFxgsfpqevZ06G-R04dvNsG3zsWL`
+- **Permissions**: Your Google account (the one you authenticate with) must have write access to this folder
 
 ## Backup Folder
 

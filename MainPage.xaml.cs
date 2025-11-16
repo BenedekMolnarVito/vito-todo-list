@@ -39,6 +39,7 @@ public partial class MainPage : ContentPage
         _todos.Clear();
         foreach (var item in items)
         {
+            if (item.Deadline.HasValue && item.Deadline.Value <= DateTime.Now) item.IsCompleted = true;
             _todos.Add(item);
         }
         TodoListView.ItemsSource = _todos;

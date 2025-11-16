@@ -45,30 +45,31 @@ The app includes automatic daily backup functionality that uploads your todo lis
 
 ## App Configuration
 
-### Option 1: In-App Authentication (Recommended)
+### Service Account Setup (Current Implementation)
 
-The app will prompt you to authenticate when the first backup runs. You'll need to:
+The app uses service account authentication for fully automated backups without user interaction. The setup is complete:
 
-1. Store your OAuth2 credentials in the app data directory
-2. Create a file at `/data/data/app.servimus.vitotodolist/files/google_drive_credentials.json`:
-   ```json
-   {
-     "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-     "client_secret": "YOUR_CLIENT_SECRET"
-   }
-   ```
+1. **Service account JSON location**: `Platforms/Android/Resources/raw/service_account.json`
+2. **Service account email**: `vitotodolist-service-account@vitotodolist.iam.gserviceaccount.com`
+3. **Required setup**:
+   - Service account JSON is embedded as an Android raw resource
+   - The JSON key is compiled into the APK/AAB
+   - No user authentication required - backups run automatically
 
-**Note**: For production apps, consider using Android's secure storage mechanisms.
+**Important**: Make sure the Google Drive folder (`VitoTodoList_BCP`) is shared with the service account email address with **Editor** permissions.
 
-### Option 2: Service Account (For Automated Access)
+### How It Works
 
-If you want fully automated backups without user interaction:
+- The `GoogleDriveService` loads credentials from the embedded resource at runtime
+- Service accounts authenticate directly with Google APIs without user interaction
+- The backup runs completely in the background via WorkManager
+- No OAuth consent screen or browser interaction needed
 
-1. In Google Cloud Console, go to **IAM & Admin** → **Service Accounts**
-2. Create a new service account
-3. Download the JSON key file
-4. Share your Google Drive folder (`VitoTodoList_BCP`) with the service account email
-5. Store the service account JSON in the app
+**Security Note**: The service account key is embedded in the app. For production:
+- Use ProGuard/R8 obfuscation
+- Consider encrypted asset storage
+- Rotate keys regularly
+- Never commit the key to public repositories
 
 ## Backup Folder
 

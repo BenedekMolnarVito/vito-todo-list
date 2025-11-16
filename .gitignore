@@ -79,3 +79,6 @@ _ReSharper*/
 *.nupkg
 **/packages/*
 !**/packages/build/
+
+# Service Account JSON
+service_account.json

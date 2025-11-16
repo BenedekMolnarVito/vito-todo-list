@@ -8,28 +8,41 @@
 
     <Grid RowDefinitions="Auto,*,Auto" Padding="10">
         <!-- Header with action buttons -->
-        <HorizontalStackLayout Grid.Row="0" Spacing="10" Margin="0,0,0,10">
-            <Button Text="Add Todo" 
-                    Clicked="OnAddTodoClicked" 
-                    BackgroundColor="{StaticResource YellowDark}"
-                    TextColor="White"
-                    HorizontalOptions="Start"/>
-            <Button Text="Export" 
-                    Clicked="OnExportClicked"
-                    BackgroundColor="{StaticResource YellowMedium}"
-                    TextColor="Black"
-                    HorizontalOptions="Start"/>
-            <Button Text="Import" 
-                    Clicked="OnImportClicked"
-                    BackgroundColor="{StaticResource YellowMedium}"
-                    TextColor="Black"
-                    HorizontalOptions="Start"/>
-            <Button Text="Share" 
-                    Clicked="OnShareClicked"
-                    BackgroundColor="{StaticResource YellowMedium}"
-                    TextColor="Black"
-                    HorizontalOptions="Start"/>
-        </HorizontalStackLayout>
+            <Grid Grid.Row="0" RowDefinitions="Auto,Auto" Margin="0,0,0,10">
+                <!-- First row with existing buttons -->
+                <HorizontalStackLayout Grid.Row="0" Spacing="10" Margin="10,0,0,10">
+                    <Button Text="Add Todo" 
+                            Clicked="OnAddTodoClicked" 
+                            BackgroundColor="{StaticResource YellowDark}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
+                    <Button Text="Export" 
+                            Clicked="OnExportClicked"
+                            BackgroundColor="{StaticResource YellowMedium}"
+                            TextColor="Black"
+                            HorizontalOptions="Start"/>
+                    <Button Text="Import" 
+                            Clicked="OnImportClicked"
+                            BackgroundColor="{StaticResource YellowMedium}"
+                            TextColor="Black"
+                            HorizontalOptions="Start"/>
+                    <Button Text="Share" 
+                            Clicked="OnShareClicked"
+                            BackgroundColor="{StaticResource YellowMedium}"
+                            TextColor="Black"
+                            HorizontalOptions="Start"/>
+                </HorizontalStackLayout>
+
+                <!-- Second row with the new button -->
+                <HorizontalStackLayout Grid.Row="1" Spacing="10">
+                    <Button Text="Backup Now" 
+                            Clicked="OnBackupNowClicked"
+                            BackgroundColor="{StaticResource YellowDark}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
+                </HorizontalStackLayout>
+            </Grid>
+        <!-- </HorizontalStackLayout> -->
 
         <!-- Todo List -->
         <CollectionView Grid.Row="1" 

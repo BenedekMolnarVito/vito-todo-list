@@ -330,4 +330,21 @@ public partial class MainPage : ContentPage
             await DisplayAlert("Error", $"Failed to share: {ex.Message}", "OK");
         }
     }
+
+    private async void OnBackupNowClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+#if ANDROID
+            VitoTodoList.Platforms.Android.BackgroundJobs.BackupScheduler.TriggerImmediateBackup(Android.App.Application.Context);
+            await DisplayAlert("Success", "Backup job queued! It will run when connected to the internet.", "OK");
+#else
+            await DisplayAlert("Info", "Backup is only available on Android.", "OK");
+#endif
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Error", $"Failed to trigger backup: {ex.Message}", "OK");
+        }
+    }
 }

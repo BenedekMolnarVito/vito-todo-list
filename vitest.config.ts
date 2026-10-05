@@ -28,6 +28,10 @@ export default defineConfig({
         __dirname,
         "src/__mocks__/@capacitor-community/sqlite.ts"
       ),
+      "@capacitor/app": resolve(
+        __dirname,
+        "src/__mocks__/@capacitor/app.ts"
+      ),
     },
   },
 });

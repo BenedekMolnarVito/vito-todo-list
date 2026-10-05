@@ -4,4 +4,5 @@
     <string name="title_activity_main">VitoTodoList</string>
     <string name="package_name">app.servimus.vitotodolist</string>
     <string name="custom_url_scheme">app.servimus.vitotodolist</string>
+    <string name="widget_description">VitoTodoList Widget</string>
 </resources>

@@ -82,7 +82,7 @@ Source audited: `MainPage.xaml(.cs)`, `TodoEditPage.xaml(.cs)`, `Models/TodoItem
 | Language | TypeScript | 5.x | Primary language |
 | Build tool | Vite | 7.x | Dev server + bundler |
 | Native bridge | Capacitor | 8.x | Android APIs (`@capacitor/core`, `/android`, `/app`, `/share`, `/filesystem`) |
-| Database | sql.js | 1.14 | SQLite via WebAssembly, persisted to `localStorage` |
+| Database | `@capacitor-community/sqlite` | latest | Real on-device SQLite file (shared with native widget — see §6). NOT sql.js — deliberate divergence from treasury-scribe so the Kotlin widget can read the same DB |
 | Routing | React Router | 6.x | Client-side navigation (list ↔ edit) |
 | Drag reorder | `@dnd-kit/core` + `@dnd-kit/sortable` | latest | Pointer-based live reorder + built-in autoscroll (fixes bug #3) |
 | Swipe delete | custom pointer handler (or `react-swipeable`) | — | Left→right reveal (change #4) |
@@ -166,15 +166,17 @@ interface Todo {
 Todo has none yet, for parity).
 
 ### DatabaseService (`src/data/DatabaseService.ts`)
-- Provider: sql.js (WASM). In Capacitor WebView resolve wasm via `sql.js/dist/sql-wasm.wasm?url`;
-  tests pass an `ArrayBuffer`.
-- Storage key: `vito-todo-list.sqlite` (base64 snapshot in `localStorage`).
-- `initDatabase(wasm?)`: `CREATE TABLE IF NOT EXISTS Todos (...)` idempotent DDL,
-  `PRAGMA foreign_keys = ON`.
-- `loadPersistedDatabase(wasm?, storage?)` / `persistDatabase(db, storage?)` /
-  `clearPersistedDatabase(storage?)` — `storage` injectable (`StorageLike`), defaults to
-  `window.localStorage`. Corrupt snapshot → discard + fresh DB.
-- Persist only after a mutation, never per read.
+- Provider: **`@capacitor-community/sqlite`** — a real on-device SQLite file (NOT sql.js). See
+  §6 for why (the native widget reads the same file).
+- DB name: `vito_todos` (so the Kotlin widget can open the same database by name/path).
+- `initDatabase(executor?)`: create/open the connection, run `CREATE TABLE IF NOT EXISTS
+  Todos (...)` idempotent DDL. No `localStorage` snapshot step — writes hit the file directly.
+- Abstraction for testability: define a small `SqliteExecutor` interface (`run`, `query`,
+  `execute`) that `@capacitor-community/sqlite` implements on-device and a node sqlite driver
+  (e.g. better-sqlite3) implements in tests. Repository functions take the executor FIRST
+  (same spirit as treasury-scribe's `db`-first convention). Document the final choice in
+  `docs/ARCHITECTURE.md`.
+- `clearAll(executor)` — `DELETE FROM Todos` (replaces the old clear-persisted-DB call).
 
 **Todos table schema**
 | Column | Type | Constraints |
@@ -189,18 +191,19 @@ Todo has none yet, for parity).
 | CompletedAt | TEXT | NULLABLE |
 
 ### TodoRepository (`src/data/TodoRepository.ts`)
-Every function takes `db: Database` as the FIRST parameter (tests inject in-memory DB).
+Every function takes `exec: SqliteExecutor` as the FIRST parameter (tests inject a node
+sqlite executor; app injects the `@capacitor-community/sqlite` one — see §4/§6).
 Prepared statements with `?` binds, explicit columns, no `SELECT *`.
 
 | Function | Behaviour (replicates MAUI `TodoDatabase`) |
 |----------|--------------------------------------------|
-| `getAllTodos(db)` | `SELECT ... ORDER BY "Order" ASC, CreatedAt DESC`. Then force `isCompleted=true` where `deadline <= now` (mirrors `LoadTodosAsync`); persist those flips. |
-| `getTodoById(db, id)` | single row |
-| `addTodo(db, todo)` | increment `"Order"` of all existing rows, insert new at `Order=0` (top). Returns new id. |
-| `updateTodo(db, todo)` | update by id |
-| `deleteTodo(db, id)` | hard delete (todo app has no soft-delete requirement) |
-| `updateOrder(db, idsInOrder)` | rewrite `"Order" = index` for each id in sequence |
-| `getAllForWidget(db)` | same as `getAllTodos` but read-only (widget consumer, §6) |
+| `getAllTodos(exec)` | `SELECT ... ORDER BY "Order" ASC, CreatedAt DESC`. Then force `isCompleted=true` where `deadline <= now` (mirrors `LoadTodosAsync`); persist those flips. |
+| `getTodoById(exec, id)` | single row |
+| `addTodo(exec, todo)` | increment `"Order"` of all existing rows, insert new at `Order=0` (top). Returns new id. |
+| `updateTodo(exec, todo)` | update by id |
+| `deleteTodo(exec, id)` | hard delete (todo app has no soft-delete requirement) |
+| `updateOrder(exec, idsInOrder)` | rewrite `"Order" = index` for each id in sequence |
+| `getAllForWidget(exec)` | same query as `getAllTodos` (the native Kotlin widget runs the equivalent SQL directly against the shared DB file, §6) |
 
 ---
 
@@ -272,54 +275,62 @@ theme — preserve the existing look. No CSS framework (treasury-scribe conventi
 
 ---
 
-## 6. The hard part — the Android home-screen widget
+## 6. The Android home-screen widget — DECISION: Option W2 (native SQLite)
 
-**This is the only feature that does NOT port cleanly to React/Capacitor.** A Capacitor app's
-UI is a WebView; Android home-screen widgets must be native `RemoteViews` and cannot render
-React. The current MAUI widget (`TodoWidgetProvider/Service/Factory`, `RemoteViews` ListView,
-resizable, tap-to-open, Hungarian relative-day deadlines) is pure native Android.
+**This is the one feature that does NOT render in a WebView.** Android home-screen widgets
+must be native `RemoteViews`; React cannot draw them. The current MAUI widget
+(`TodoWidgetProvider/Service/Factory`, `RemoteViews` ListView, resizable, tap-to-open,
+Hungarian relative-day deadlines) is pure native Android.
 
-Options (decision required before implementing — see §9 open questions):
+**Chosen strategy — W2: a real on-device SQLite file, shared by the WebView app and the
+native widget.** This is a deliberate divergence from treasury-scribe (which uses sql.js):
+instead of sql.js serialised to `localStorage`, the app's database is a genuine SQLite file
+on the device, accessed from TypeScript through the **`@capacitor-community/sqlite`** plugin.
+The native Kotlin widget reads that same SQLite file directly — the widget gets a
+first-class, always-current data source with no snapshot-bridge hack.
 
-- **Option W1 — Native Kotlin widget reading a shared store (recommended).**
-  Keep a native `AppWidgetProvider` + `RemoteViewsService`/`Factory` in the Capacitor
-  `android/` project (port the existing MAUI widget logic to Kotlin almost 1:1). The widget
-  needs the todo data. Since the app DB is sql.js in `localStorage` (inside the WebView,
-  NOT a real SQLite file the widget can read), bridge the data out: on every mutation, the
-  app writes a compact JSON snapshot of todos to Android `SharedPreferences` (or a file in
-  app storage) via a tiny Capacitor plugin; the Kotlin `Factory` reads that snapshot. Tap →
-  `PendingIntent` launches `MainActivity` (the WebView). Reorder/complete reflect on next
-  snapshot write + `notifyAppWidgetViewDataChanged`.
-  - Pros: preserves full widget feature set, resizable, scrollable, tap-to-open.
-  - Cons: a small Kotlin plugin + widget code; data-bridge wiring; widget is read-only.
+Consequences (reflected throughout this plan):
+- **Data layer uses `@capacitor-community/sqlite`, NOT sql.js.** `DatabaseService` opens a
+  named connection (e.g. `vito_todos`), runs the DDL, and executes queries via the plugin
+  (`createConnection` / `open` / `execute` / `query` / `run`). On Android the plugin stores
+  the DB under the app's databases dir; expose it so the widget's Kotlin code can open the
+  same file (same DB name; use the plugin's documented on-device path).
+- **No `localStorage` persistence step** — writes land in the real DB file immediately; drop
+  the base64 snapshot/`persistDatabase` machinery entirely.
+- **Tests** can no longer use in-memory sql.js. Options (pick in Phase 1): (a) run the data
+  layer against better-sqlite3 / node sqlite in Vitest by abstracting the DB behind a small
+  `SqliteExecutor` interface that `@capacitor-community/sqlite` implements on-device and a
+  node driver implements in tests; or (b) use the plugin's web/electron implementation
+  (jeep-sqlite / sql.js under the hood) in jsdom. Prefer (a): keep all repository functions
+  taking an `executor` first arg (same spirit as treasury-scribe's `db`-first convention) so
+  tests inject a node-backed executor and the app injects the Capacitor one. Document the
+  chosen approach in `docs/ARCHITECTURE.md`.
+- **Native widget (Kotlin), ported ~1:1 from the MAUI widget.** `AppWidgetProvider` +
+  `RemoteViewsService`/`RemoteViewsFactory` in the Capacitor `android/` project; the Factory
+  opens the shared SQLite file (read-only) and builds the `RemoteViews` list. Reuse the
+  existing Android XML layouts as-is: `todo_widget.xml`, `todo_widget_item.xml`,
+  `todo_widget_info.xml`. Keep tap-to-open (`PendingIntent` → `MainActivity`) and the
+  Hungarian relative-day deadline formatting (ma/hétfő/kedd/…). After an app mutation, call
+  `AppWidgetManager.notifyAppWidgetViewDataChanged` so the widget refreshes.
+- **Concurrency**: app writes + widget reads hit the same file. Rely on SQLite's locking;
+  keep the widget strictly read-only; the widget re-queries on `onDataSetChanged`.
 
-- **Option W2 — Native Kotlin widget with its own real SQLite file.**
-  Instead of sql.js, use a native SQLite DB the widget reads directly, and have the WebView
-  talk to it through a Capacitor SQLite plugin (e.g. `@capacitor-community/sqlite`). This
-  diverges from treasury-scribe (which uses sql.js) but gives the widget a first-class data
-  source. Heavier change to the data layer.
-
-- **Option W3 — Drop the widget (smallest scope).**
-  If the widget is not important, ship the React app without it and document the removal.
-  Not recommended — the widget is a listed current feature.
-
-Recommendation: **W1** — keep sql.js for the app (treasury-scribe parity) and add a
-JSON-snapshot bridge to a ported Kotlin widget. Port these existing files to Kotlin:
-`TodoWidgetProvider.cs`, `TodoWidgetService.cs`, `TodoWidgetFactory.cs`,
-`WidgetUpdateHelper.cs`, and the layouts `todo_widget.xml` / `todo_widget_item.xml` /
-`todo_widget_info.xml` (already Android XML — reusable as-is). Keep the Hungarian
-relative-day deadline formatting (ma/hétfő/kedd/…).
+Risk accepted by choosing W2: a heavier data-layer change and app↔widget file-sharing
+wiring, in exchange for a widget with a real, live data source (no JSON snapshot bridge).
 
 ---
 
 ## 7. Testing strategy (mirror treasury-scribe)
 
 ### Unit / integration (Vitest, test-first)
-- Fresh in-memory sql.js per test (`beforeEach initDatabase(wasm)`, `afterEach db.close()`).
-  No data-layer mocks. Import vitest fns explicitly, no globals. `make*` fixture factories.
-- Capacitor Share/Filesystem mocked no-op via `src/__mocks__/`.
+- Data-layer tests run against a node SQLite driver (e.g. better-sqlite3) injected through the
+  `SqliteExecutor` interface (§4/§6) — a fresh in-memory DB per test (`beforeEach` init DDL,
+  `afterEach` close). No data-layer mocks. Import vitest fns explicitly, no globals. `make*`
+  fixture factories. (The on-device app uses `@capacitor-community/sqlite` for the same
+  interface.)
+- Capacitor Share/Filesystem/sqlite mocked no-op via `src/__mocks__/`.
 - Coverage per layer, mirroring `tests/`:
-  - `data/`: `DatabaseService` (init, persist round-trip, corrupt snapshot), `TodoRepository`
+  - `data/`: `DatabaseService` (init DDL idempotent), `TodoRepository`
     (ordering rules: new-item-to-top, updateOrder, deadline auto-complete).
   - `services/`: `ExportImportService` (JSON round-trip, import reverses + new ids).
   - `hooks/`: `useTodos` (add/delete/toggle/reorder/import/export), `useEditTodo` (validation,
@@ -353,42 +364,48 @@ add/save buttons, and inputs so CDP+JEV can target them deterministically.
 ## 8. Implementation steps (phased, each ends on a green gate)
 
 Work on branch `feat/rework-react-capacitor` (worktree at
-`/Users/C5418860/temp/vito-todo-list-rework`), based on `develop`. Commit per phase with
-Conventional Commits (`feat:`, `test:`, `chore:`). Gate after each phase:
-`npm run test` exit 0 + `npm run build` ok + `npx tsc --noEmit` clean.
+`/Users/C5418860/temp/vito-todo-list-rework`), based on `develop`.
+**Commit discipline (user directive): commit regularly** — at minimum after every phase and
+after every green gate, with Conventional Commits (`feat:`, `test:`, `chore:`), so any phase
+can be reverted independently if something goes wrong. Gate after each phase:
+`npm run test` exit 0 + `npm run build` ok + `npx tsc --noEmit` clean. Never commit a red gate.
 
 **Phase 0 — scaffold.**
-`npm init`, add React 18 + TS 5 + Vite 7 + Capacitor 8 + sql.js + React Router + @dnd-kit +
-Vitest + Testing Library (match treasury-scribe versions). Add `tsconfig.json`,
-`vite.config.ts`, `vitest.config.ts`, `index.html`, `capacitor.config.ts`
-(`appId=app.servimus.vitotodolist`), the npm scripts, and `.github/copilot-instructions.md`
-+ `AGENTS.md` adapted from treasury-scribe. `npx cap add android`.
+`npm init`, add React 18 + TS 5 + Vite 7 + Capacitor 8 + `@capacitor-community/sqlite` +
+a node sqlite driver for tests (e.g. better-sqlite3, devDependency) + React Router + @dnd-kit +
+Vitest + Testing Library. Add `tsconfig.json`, `vite.config.ts`, `vitest.config.ts`,
+`index.html`, `capacitor.config.ts` (`appId=app.servimus.vitotodolist`), the npm scripts, and
+`.github/copilot-instructions.md` + `AGENTS.md` adapted from treasury-scribe. `npx cap add android`.
 
 **Phase 1 — data layer (TDD).**
-`models/Todo.ts`, `data/DatabaseService.ts`, `data/TodoRepository.ts`. Tests first:
-ordering rules (new-to-top, updateOrder, deadline auto-complete), persist round-trip,
-corrupt-snapshot recovery. Gate.
+`models/Todo.ts`, `data/SqliteExecutor.ts` (interface + node-driver impl for tests),
+`data/DatabaseService.ts`, `data/TodoRepository.ts`. Tests first against the node executor:
+ordering rules (new-to-top, updateOrder, deadline auto-complete), DDL idempotency, CRUD. Gate.
 
 **Phase 2 — services (TDD).**
 `services/ExportImportService.ts` (JSON export; import reverses + resets ids). Tests first.
 Gate.
 
 **Phase 3 — hooks (TDD).**
-`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected DB + mocked share. Gate.
+`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected executor + mocked share. Gate.
 
 **Phase 4 — UI components.**
-`App.tsx` (router + DB bootstrap + persistence), `TodoListPage`, `TodoEditPage`, `TodoRow`,
+`App.tsx` (router + DB bootstrap), `TodoListPage`, `TodoEditPage`, `TodoRow`,
 `SortableTodoRow` (@dnd-kit live reorder + autoscroll — BUGFIX #3), `SwipeToDelete`
 (left-anchored, rightward-swipe — CHANGE #4). Component tests. Add `data-testid`s. Gate.
 
-**Phase 5 — Android shell + widget (Option W1, decision-gated by §9).**
-`npx cap sync android`; port the native widget to Kotlin + the JSON-snapshot bridge plugin;
-reuse the existing widget XML layouts. Build the debug APK (`./gradlew assembleDebug`),
-`adb install -r -g`. 
+**Phase 5 — Android shell + native widget (Option W2 — see §6).**
+`npx cap sync android`; wire `@capacitor-community/sqlite` on Android (the real DB file).
+Port the widget to Kotlin (`AppWidgetProvider` + `RemoteViewsService`/`Factory`) reading the
+SAME SQLite file read-only; reuse the existing widget XML layouts. Build the debug APK
+(`./gradlew assembleDebug`), `adb install -r -g`. Verify the widget shows live data and
+tap-to-open works. Commit.
 
-**Phase 6 — behavioural smoke (CDP + JEV).**
-Copy `.maestro/smoke/` from treasury-scribe + the skill's `jev_dom_runner.py`. Run the 5
-scenarios on the emulator; store DOM dumps + `report.json` under `.maestro/smoke_out/`.
+**Phase 6 — behavioural smoke (DOM-based JEV, the originally-requested test method).**
+Copy `.maestro/smoke/` from treasury-scribe + the skill's `jev_dom_runner.py`. Implement and
+run the smoke scenarios (§7) on the emulator via CDP DOM extraction + JEV verdicts; store DOM
+dumps + `report.json` under `.maestro/smoke_out/`. This is a required deliverable, not
+optional. Commit the harness + evidence.
 
 **Phase 7 — remove MAUI + docs.**
 Delete the MAUI sources (`*.xaml`, `*.cs`, `VitoTodoList.csproj`, `Platforms/` MAUI bits,
@@ -397,15 +414,14 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
 
 ---
 
-## 9. Open questions (resolve before Phase 5)
+## 9. Open questions
 
-1. **Widget**: confirm Option W1 (native Kotlin widget + JSON-snapshot bridge, keep sql.js) vs
-   W2 (native SQLite via `@capacitor-community/sqlite`) vs W3 (drop widget). W1 recommended.
+1. **Widget**: ✅ RESOLVED — **Option W2** chosen by the user: native Kotlin widget reading a
+   real on-device SQLite file via `@capacitor-community/sqlite` (NOT sql.js). See §6.
 2. **MAUI removal**: delete MAUI sources in this branch (recommended) or keep them until the
    React app is proven on-device in a follow-up?
-3. **Emulator vs device**: treasury-scribe notes emulators are unreliable for its
-   NotificationListener — but this todo app has no notification listener, so the emulator is
-   fine for smoke testing here.
+3. **Emulator vs device**: this todo app has no notification listener, so the emulator is
+   fine for the DOM-based JEV smoke testing (Phase 6).
 4. **Swipe library**: hand-rolled pointer handler (full control over left-anchor direction) vs
    a library like `react-swipeable`. Hand-rolled recommended for exact left-handed behaviour.
 5. **Package/namespace**: keep `app.servimus.vitotodolist`? (matches current MAUI id).
@@ -416,12 +432,13 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
 
 | Risk | Mitigation |
 |------|-----------|
-| Widget cannot read sql.js (`localStorage`) data | JSON-snapshot bridge to SharedPreferences on every mutation (W1), or native SQLite (W2) |
+| Widget cannot read sql.js (`localStorage`) data | Resolved by W2: app + widget share ONE real SQLite file via `@capacitor-community/sqlite`; widget opens it read-only |
+| App write vs widget read on the same SQLite file | Keep the widget strictly read-only; rely on SQLite file locking; widget re-queries on `onDataSetChanged` after each app mutation |
 | @dnd-kit autoscroll not firing inside a custom scroll container | Ensure the scrollable list is the DndContext scroll container; configure `autoScroll` threshold/acceleration; test on-device |
 | Swipe-delete gesture conflicts with drag activation and tap-to-edit | Separate activators: drag only from the `☰` handle (hold), swipe only horizontal past threshold, tap elsewhere opens editor |
 | adb swipe won't trigger React swipe in smoke tests | Drive delete via DOM click / hook; cover swipe-direction with unit tests (skill caveat) |
-| Data loss migrating existing on-device MAUI SQLite DB | Out of scope unless the user has real data to preserve; if so, add a one-time import of the old `todos.db3` → sql.js (needs a native read of the MAUI DB file). Flag as a separate task. |
-| sql.js wasm path resolution in Capacitor WebView | Use `sql.js/dist/sql-wasm.wasm?url` (treasury-scribe proven); verify after `cap sync` |
+| Data loss migrating existing on-device MAUI SQLite DB | Out of scope unless the user has real data to preserve; if so, add a one-time import of the old `todos.db3`. Flag as a separate task. |
+| `@capacitor-community/sqlite` on-device DB path / name mismatch between app and widget | Pin the DB name (`vito_todos`); confirm the plugin's Android storage path and open the same file from Kotlin; verify after `cap sync` + on-device |
 
 ---
 
@@ -432,7 +449,8 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
 2. All current features preserved (§1 table), widget per chosen option.
 3. `npm run test` exit 0, new behaviour has new tests, coverage held high.
 4. `npm run build` ok, `npx tsc --noEmit` clean.
-5. Behavioural smoke harness green on emulator (DOM dumps as evidence).
+5. **DOM-based JEV smoke harness green on the emulator** (required deliverable) — CDP DOM
+   dumps + `report.json` as evidence for all §7 scenarios.
 6. Conventional commits on `feat/rework-react-capacitor`; PR into `develop`.
 7. `docs/ARCHITECTURE.md` + `README.md` updated to the new stack.
 

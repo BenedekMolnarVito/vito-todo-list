@@ -20,6 +20,7 @@
   "license": "ISC",
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.2",
     "@types/better-sqlite3": "^7.6.13",
@@ -34,12 +35,12 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.1",
     "@capacitor/android": "^8.0.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.2.0",
     "@capacitor/filesystem": "^8.1.4",
     "@capacitor/share": "^8.0.1",
-    "@capacitor-community/sqlite": "^8.1.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

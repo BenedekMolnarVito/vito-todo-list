@@ -85,7 +85,7 @@ Source audited: `MainPage.xaml(.cs)`, `TodoEditPage.xaml(.cs)`, `Models/TodoItem
 | Database | `@capacitor-community/sqlite` | latest | Real on-device SQLite file (shared with native widget — see §6). NOT sql.js — deliberate divergence from treasury-scribe so the Kotlin widget can read the same DB |
 | Routing | React Router | 6.x | Client-side navigation (list ↔ edit) |
 | Drag reorder | `@dnd-kit/core` + `@dnd-kit/sortable` | latest | Pointer-based live reorder + built-in autoscroll (fixes bug #3) |
-| Swipe delete | custom pointer handler (or `react-swipeable`) | — | Left→right reveal (change #4) |
+| Swipe delete | `react-swipeable-list` (fallback: hand-rolled) | 1.10.0 | Leading/trailing swipe actions, configurable — left-anchored delete (change #4). §9 Q4 |
 | Testing | Vitest | 4.x (+ `@vitest/coverage-v8`) | Unit/integration test framework |
 | Testing utils | Testing Library + jsdom | 16.x / latest | React component + hook tests |
 | Type/lint gate | `tsc --noEmit` | — | No separate lint command (same as treasury-scribe) |
@@ -257,9 +257,12 @@ JS with a deterministic reorder model, unit-testable and DOM-inspectable.
 The left-handed user wants the red Delete button on the **left**, revealed by a
 **left-to-right** swipe (finger moves rightward).
 
-- Implement `SwipeToDelete.tsx`: a pointer/touch handler tracking horizontal drag on the row.
-  A rightward drag past a threshold reveals a red "Delete" action anchored on the LEFT edge;
-  releasing past the commit threshold (or tapping the revealed button) fires delete.
+- Implement `SwipeToDelete.tsx` using **`react-swipeable-list`** (see §9 Q4): render the row
+  inside `<SwipeableListItem leadingActions={...}>` with a red, `destructive` Delete action in
+  `LeadingActions` so it sits on the LEFT and is revealed by a rightward (left-to-right) swipe.
+  Use `type="ANDROID"`, a sensible `threshold`, and `destructiveCallbackDelay` for the delete
+  animation. Keep this component boundary stable so a hand-rolled fallback is a drop-in swap if
+  the library's React-18 peer compat disappoints at install.
 - Delete shows a confirm dialog ("Delete '<title>'?", Yes/No) — matches MAUI `DeleteTodoAsync`.
 - Treasury-scribe already has swipe-to-delete-with-confirm on `TransactionsPage`; reuse its
   approach, but anchor the action on the left and trigger on rightward swipe.
@@ -418,13 +421,24 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
 
 1. **Widget**: ✅ RESOLVED — **Option W2** chosen by the user: native Kotlin widget reading a
    real on-device SQLite file via `@capacitor-community/sqlite` (NOT sql.js). See §6.
-2. **MAUI removal**: delete MAUI sources in this branch (recommended) or keep them until the
-   React app is proven on-device in a follow-up?
+2. **MAUI removal**: ✅ RESOLVED — delete ALL MAUI sources, libraries, and dependencies in
+   this branch (user: "I can revert from main if need be"). Do it in a dedicated commit in
+   Phase 7 once the React app is green. Remove `*.xaml(.cs)`, `VitoTodoList.csproj`,
+   `vito-todo-list.sln`, MAUI `Platforms/` bits, `Resources/Styles|AppIcon|Splash` MAUI assets,
+   `App.xaml`, `AppShell.xaml`, `GlobalXmlns.cs`, `MauiProgram.cs`, `IMPLEMENTATION_SUMMARY.md`
+   — keeping only what the Capacitor project needs (the Android widget XML layouts are reused).
 3. **Emulator vs device**: this todo app has no notification listener, so the emulator is
    fine for the DOM-based JEV smoke testing (Phase 6).
-4. **Swipe library**: hand-rolled pointer handler (full control over left-anchor direction) vs
-   a library like `react-swipeable`. Hand-rolled recommended for exact left-handed behaviour.
-5. **Package/namespace**: keep `app.servimus.vitotodolist`? (matches current MAUI id).
+4. **Swipe library**: ✅ RESOLVED via web search — use **`react-swipeable-list`** (npm,
+   v1.10.0, 0 deps, built-in TS types, pure web-React/react-dom). It supports BOTH
+   `LeadingActions` (left swipe) and `TrailingActions` (right swipe) with configurable
+   `threshold` and a `destructive` delete action — directly enabling the left-handed
+   requirement via `leadingActions` (red Delete on the LEFT, revealed by a rightward swipe).
+   Caveats to verify at install: it was last published ~2 years ago and targets React 18 —
+   run `npm ls react` / check peer deps; if React-18 peer compat or maintenance is a problem,
+   **fall back to the hand-rolled pointer handler** (user's instruction). Keep the component
+   boundary (`SwipeToDelete.tsx`) identical either way so the fallback is a drop-in swap.
+5. **Package/namespace**: ✅ RESOLVED — keep `appId = app.servimus.vitotodolist` (user).
 
 ---
 
@@ -453,5 +467,81 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
    dumps + `report.json` as evidence for all §7 scenarios.
 6. Conventional commits on `feat/rework-react-capacitor`; PR into `develop`.
 7. `docs/ARCHITECTURE.md` + `README.md` updated to the new stack.
+8. **Legacy JSON export round-trips** (§12): the user's existing MAUI export imports cleanly
+   into the reworked app with no data loss, verified by a test against the reference fixture
+   AND against the user's real file before they rely on it.
+
+---
+
+## 12. JSON export/import backward-compatibility (HIGH PRIORITY)
+
+The user has a REAL exported JSON from the current MAUI app and will re-import it after
+reinstalling. The rework MUST import that file losslessly. This section pins the exact legacy
+format so the new import is backward-compatible, and defines the forward format.
+
+### 12.1 Exact legacy (MAUI) export format
+From `Services/ExportImportService.cs` (`JsonSerializer.Serialize(items, { WriteIndented = true })`)
+and `Models/TodoItem.cs`. No custom naming policy or converters exist (verified by search), so
+System.Text.Json defaults apply:
+- **Root** = a JSON **array** of todo objects (serialized `List<TodoItem>`).
+- **Keys = PascalCase**, in `TodoItem` declaration order:
+  `Id, Title, Description, Deadline, IsCompleted, Order, CreatedAt, CompletedAt`.
+- Types: `Id`/`Order` = number; `Title` = string; `Description`/`Deadline`/`CompletedAt`
+  = string or `null`; `IsCompleted` = `true`/`false`; `CreatedAt` = string.
+- `DateTime`/`DateTime?` serialize as ISO-8601 round-trip strings WITHOUT a timezone offset
+  (local kind), fractional seconds present when non-zero, e.g. `"2026-02-20T09:15:42.1234567"`
+  or `"2026-02-28T14:30:00"`. `null` for absent nullable dates.
+- Pretty-printed, 2-space indent (irrelevant to parsing).
+
+A reference fixture reproducing this exactly: `tests/fixtures/legacy-maui-export.sample.json`.
+
+> ⚠️ **Could not run the real .NET exporter** — this machine has no .NET SDK installed (only
+> Android SDK/Java/adb/emulator), so the MAUI app can't be built here to produce a live
+> sample. The fixture above is hand-constructed from System.Text.Json's deterministic default
+> behaviour for these exact types. **Before the user trusts the import with their real data,
+> validate the importer against their ACTUAL exported file** (ask them to share it, or diff its
+> top-level shape against the fixture). Do not claim round-trip success on the fixture alone.
+
+### 12.2 Legacy → new `Todo` model field mapping
+The new TS model (§4) uses camelCase. The importer must accept PascalCase legacy keys and map:
+
+| Legacy (PascalCase) | New `Todo` (camelCase) | Transform on import |
+|---------------------|------------------------|---------------------|
+| `Id` | `id` | reset to 0/new (re-insert as new rows, mirror MAUI import) |
+| `Title` | `title` | copy |
+| `Description` | `description` | copy (null → null) |
+| `Deadline` | `deadline` | copy ISO string; normalise to a canonical ISO form the app uses |
+| `IsCompleted` | `isCompleted` | copy |
+| `Order` | `order` | recompute on insert per MAUI import semantics (see 12.4) |
+| `CreatedAt` | `createdAt` | copy; if missing, set now |
+| `CompletedAt` | `completedAt` | copy (null → null) |
+
+The importer should be TOLERANT: accept either PascalCase (legacy) or camelCase (new export)
+keys, so both old files and the app's own future exports import. Implement a case-insensitive
+key lookup (or try PascalCase then camelCase) in `ExportImportService.importFromJson`.
+
+### 12.3 New (rework) export format
+Export the app's own data as a JSON array of the new `Todo` shape. Decision for the forward
+format: emit **camelCase** keys (idiomatic TS) AND keep the importer able to read PascalCase
+so legacy files still load. Document this in `docs/ARCHITECTURE.md`. (If strict visual parity
+with the old file is wanted, an export option could emit PascalCase — not required.)
+
+### 12.4 Import semantics to replicate (from MAUI `OnImportClicked` + `ImportFromJsonAsync`)
+- `ImportFromJsonAsync` **reverses** the deserialized list, then each item is saved as NEW
+  (`item.Id = 0`), so items land on top in their original order. Replicate exactly: reverse,
+  then `addTodo` each (which puts each at `Order = 0`, shifting others down) → net result is
+  original order preserved at the top of the list.
+- Invalid JSON → return null/empty, surface an error (MAUI shows "Invalid JSON format").
+
+### 12.5 Required tests (Phase 2, test-first)
+1. Import `tests/fixtures/legacy-maui-export.sample.json` → 3 todos with correct
+   title/description/deadline/isCompleted/completedAt; ids reassigned; order = original after
+   the reverse-then-insert rule.
+2. Round-trip: export (new format) → import → deep-equal on all fields except id.
+3. Tolerant keys: a camelCase file AND a PascalCase file both import to identical todos.
+4. Deadline/date parsing: ISO strings with and without fractional seconds both parse.
+5. Invalid JSON → graceful error, no DB mutation.
+6. (Manual, before go-live) import the user's REAL exported file on-device and confirm the
+   list matches what they had.
 
 

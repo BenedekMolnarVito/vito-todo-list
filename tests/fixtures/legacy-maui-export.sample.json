@@ -1,0 +1,32 @@
+[
+  {
+    "Id": 1,
+    "Title": "Buy groceries",
+    "Description": "Milk, eggs, bread",
+    "Deadline": "2026-02-28T14:30:00",
+    "IsCompleted": false,
+    "Order": 0,
+    "CreatedAt": "2026-02-20T09:15:42.1234567",
+    "CompletedAt": null
+  },
+  {
+    "Id": 2,
+    "Title": "Call dentist",
+    "Description": null,
+    "Deadline": null,
+    "IsCompleted": true,
+    "Order": 1,
+    "CreatedAt": "2026-02-18T11:00:00",
+    "CompletedAt": "2026-02-19T08:30:00"
+  },
+  {
+    "Id": 3,
+    "Title": "Finish report",
+    "Description": "Q1 summary for the team",
+    "Deadline": "2026-03-05T17:00:00",
+    "IsCompleted": false,
+    "Order": 2,
+    "CreatedAt": "2026-02-15T16:45:10",
+    "CompletedAt": null
+  }
+]

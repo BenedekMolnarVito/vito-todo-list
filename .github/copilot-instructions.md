@@ -109,3 +109,35 @@ if (string.IsNullOrWhiteSpace(TitleEntry.Text))
 - `Data/TodoDatabase.cs` - All database operations, order management
 - `Platforms/Android/Widgets/TodoWidgetProvider.cs` - Widget rendering, spannable text
 - `IMPLEMENTATION_SUMMARY.md` - Complete feature checklist, architecture decisions
+
+---
+
+## React + TypeScript + Vite + Capacitor (branch: feat/rework-react-capacitor)
+
+> Phase 0 scaffold added. MAUI sources preserved; removal happens in Phase 7.
+
+### New Stack
+
+React 18 + TypeScript 5 + Vite 7, Android via Capacitor 8.
+DB = `@capacitor-community/sqlite` (on-device SQLite, shared with Kotlin widget).
+Drag reorder: `@dnd-kit`. Swipe-delete: `react-swipeable-list`.
+
+### Gate (all must pass before merge)
+
+```
+npx tsc --noEmit    # typecheck — de-facto lint (no separate lint command)
+npm run build       # vite build
+npm run test        # vitest run
+```
+
+### Key Conventions
+
+- `globals: false` in vitest — import `{ describe, it, expect, vi }` from `"vitest"` explicitly.
+- Capacitor plugins mocked via alias in `vitest.config.ts` → `src/__mocks__/`.
+- `better-sqlite3` is DEV-ONLY (test driver). Never import in app code.
+- Do NOT delete MAUI files (*.xaml, *.cs, *.csproj, *.sln) — Phase 7 handles removal.
+
+### Spec Sources
+
+- `docs/REWORK_PLAN_react-capacitor.md` — full plan (§2 stack, §3 structure, §4 data, §7 tests).
+

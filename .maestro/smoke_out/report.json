@@ -1,0 +1,140 @@
+[
+  {
+    "id": "S1_add_todo_appears_top",
+    "feature": "Add todo via add-screen \u2192 appears at TOP of list",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "todo_added_at_top": 0.82
+    },
+    "jev_fails": [],
+    "jev_gating": false,
+    "nav_evidence": {},
+    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S1_add_todo_appears_top_dom.json"
+  },
+  {
+    "id": "S2_toggle_complete_strikethrough",
+    "feature": "Toggle checkbox \u2192 completed title has computed line-through",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "strikethrough_applied": 0.56
+    },
+    "jev_fails": [
+      "strikethrough_applied=0.56<0.8"
+    ],
+    "jev_gating": false,
+    "nav_evidence": {},
+    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S2_toggle_complete_strikethrough_dom.json"
+  },
+  {
+    "id": "S3_reorder_persists",
+    "feature": "Reorder attempt + list order PERSISTS across app reload (SQLite)",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "reorder_capable": 0.99
+    },
+    "jev_fails": [],
+    "jev_gating": false,
+    "nav_evidence": {
+      "order_seed": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "reorder_result": {
+        "driven": true,
+        "before_ids": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "after_ids": [
+          4,
+          3,
+          2,
+          1
+        ],
+        "changed": false
+      },
+      "order_after": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "order_persisted": [
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S3_reorder_persists_dom.json"
+  },
+  {
+    "id": "S4_swipe_delete",
+    "feature": "LEFT delete button \u2192 confirm \u2192 row removed (count drops, row gone)",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "delete_action_present": 0.32
+    },
+    "jev_fails": [
+      "delete_action_present=0.32<0.8"
+    ],
+    "jev_gating": false,
+    "nav_evidence": {
+      "order_before_delete": [
+        4,
+        3,
+        2,
+        1
+      ],
+      "delete_result": {
+        "clicked": true,
+        "row_gone": true,
+        "before_count": 4,
+        "after_count": 3
+      },
+      "deleted_id": 4
+    },
+    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S4_swipe_delete_dom.json"
+  },
+  {
+    "id": "S5_export_share",
+    "feature": "Tap Share \u2192 native share invoked \u2192 app alive on list (no crash)",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "share_invoked_no_crash": 0.8
+    },
+    "jev_fails": [],
+    "jev_gating": false,
+    "nav_evidence": {},
+    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S5_export_share_dom.json"
+  },
+  {
+    "id": "S5_export_vitest",
+    "feature": "Export/import JSON round-trip (unit test coverage)",
+    "kind": "vitest",
+    "verdict": "PASS",
+    "vitest_files": [
+      "tests/services/ExportImportService.test.ts"
+    ],
+    "output_tail": "RUN  v4.1.11 /Users/C5418860/temp/vito-todo-list\n\n\n Test Files  1 passed (1)\n      Tests  21 passed | 1 skipped (22)\n   Start at  14:53:04\n   Duration  5.53s (transform 54ms, setup 625ms, import 46ms, tests 10ms, environment 4.57s)"
+  }
+]

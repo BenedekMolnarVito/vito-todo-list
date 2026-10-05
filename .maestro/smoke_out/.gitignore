@@ -1,0 +1,4 @@
+# Keep the behavioral evidence (report.json + DOM dumps) as committed proof of
+# the Phase 6 on-device smoke run, but ignore regenerable binary artifacts.
+maestro/*.png
+maestro/*.log

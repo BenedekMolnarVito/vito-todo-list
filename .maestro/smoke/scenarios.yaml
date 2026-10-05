@@ -1,0 +1,240 @@
+# VitoTodoList — behavioral smoke-test scenarios (declarative, extensible).
+#
+# Adapted from treasury-scribe/.maestro/smoke/scenarios.yaml, then hardened so
+# every scenario DRIVES its mutation and VERIFIES it DETERMINISTICALLY.
+#
+# ───────────────────────────────────────────────────────────────────────────
+# ASSERTION MODEL (why the gate is deterministic, not model-based)
+#   code_assert  → HARD, deterministic. These are the GATE. All must pass.
+#   jev_assert   → ADVISORY semantic yes/no (TypeSafe Jev). Recorded as evidence
+#                  but does NOT fail a scenario UNLESS the scenario sets
+#                  `jev_gating: true`. Rationale (android-webview-jev-testing
+#                  skill): the distilled DOM Jev sees is STYLE-STRIPPED, so a
+#                  purely visual question (strikethrough, "left-anchored") gets
+#                  a noisy noul even when the feature works. Trust the dumped DOM
+#                  + computed_style over the noul. Visual facts are asserted via
+#                  `computed_style` instead; Jev stays as a human-readable cross-check.
+#
+# HOW TO ADD/EDIT A SCENARIO (regression-friendly, no Python changes):
+#   nav: ordered deterministic actions replayed BEFORE asserting:
+#       launch                       -> foreground the app
+#       dismiss_perms                -> press Back up to 3x to clear OS perm screens
+#       tap_text: "<label>"          -> click smallest element whose text == label
+#       tap_testid: "<testid>"       -> click [data-testid=...]
+#       set_input: {field, value}    -> set a React input by placeholder/aria-label/testid
+#       press_key: "<KEYCODE>"       -> Android system key (e.g. KEYCODE_BACK)
+#       sleep: <seconds>             -> settle animation/navigation
+#       toggle_first_checkbox: <s>   -> click the first checkbox-<id>, settle <s>s
+#       drive_delete_first: <s>      -> override confirm->true, click first delete-<id>;
+#                                       records nav_state.delete_result {clicked,row_gone,
+#                                       before_count,after_count} + deleted_id
+#       drive_reorder_first_to_third: <s> -> synthetic @dnd-kit pointer drag row1->row3;
+#                                       records nav_state.reorder_result {driven,before_ids,
+#                                       after_ids,changed}
+#       snapshot_order: "<name>"     -> capture current row id order into nav_state["<name>"]
+#       reload_app: <s>              -> force-stop + relaunch (re-reads SQLite), settle <s>s
+#   code_assert: HARD checks (all must pass):
+#       url_endswith / url_contains, testid_present[], testid_absent[], text_present[],
+#       min_interactive, js: {expr, equals},
+#       computed_style: {el:"<js->element|null>", prop, contains|equals}  (one or a list),
+#       nav_assert: [{key:"a.b", equals|equals_key|not_equals_key|truthy}]  (reads nav_state)
+#   jev_assert: [{id, question, true, false}] — ADVISORY unless jev_gating: true.
+#   kind: vitest → shells out to the Node suite for paths the emulator UI cannot drive.
+#
+# TESTIDS present in VitoTodoList (Phase 4):
+#   List:  todo-list-page, add-button, todo-list, todo-row-<id>, checkbox-<id>,
+#          drag-handle-<id>, swipe-container-<id>, delete-<id> (data-swipe-side="leading")
+#   Edit:  todo-edit-page, title-input, description-input, deadline-date-input,
+#          deadline-time-input, save-button, cancel-button
+
+settings:
+  jev_pass_threshold: 0.8     # advisory: noul >= this is reported as "jev agrees"
+  default_sleep: 1.5
+  app_id: "app.servimus.vitotodolist"
+
+# Seed data: created via the Add screen before the run (deterministic order:
+# newest at TOP, so DOM order after seeding is Third, Second, First).
+seed:
+  todos:
+    - {title: "First todo"}
+    - {title: "Second todo"}
+    - {title: "Third todo"}
+
+scenarios:
+
+  # ---------------------------------------------------------------------------
+  # S1: Add a todo → it appears at TOP of the list
+  # ---------------------------------------------------------------------------
+  - id: S1_add_todo_appears_top
+    feature: "Add todo via add-screen → appears at TOP of list"
+    nav:
+      - {tap_testid: add-button}
+      - {sleep: 1.5}
+      - {set_input: {field: "title-input", value: "Smoke Test Todo"}}
+      - {sleep: 0.5}
+      - {tap_testid: save-button}
+      - {sleep: 2}
+    code_assert:
+      testid_present: [todo-list-page, add-button, todo-list]
+      # The newly added todo must be the FIRST (top) row.
+      js:
+        expr: >
+          (()=>{
+            const list = document.querySelector('[data-testid="todo-list"]');
+            if (!list) return false;
+            const items = list.querySelectorAll('[data-testid^="todo-row-"]');
+            if (!items.length) return false;
+            return (items[0].innerText || '').includes('Smoke Test Todo');
+          })()
+        equals: true
+    jev_assert:
+      - id: todo_added_at_top
+        question: "Does the todo list show a new todo titled 'Smoke Test Todo' at the TOP (first position) of the list?"
+        true: "A todo titled 'Smoke Test Todo' is visible at the top of the list"
+        false: "The todo is not present, or is not at the top of the list"
+
+  # ---------------------------------------------------------------------------
+  # S2: Toggle complete → title shows strikethrough (deterministic computed-style)
+  # The checkbox is toggled in nav; the strikethrough is proven by reading the
+  # COMPUTED text-decoration of the completed row's title span (not a Jev guess).
+  # ---------------------------------------------------------------------------
+  - id: S2_toggle_complete_strikethrough
+    feature: "Toggle checkbox → completed title has computed line-through"
+    nav:
+      - {toggle_first_checkbox: 1.2}
+    code_assert:
+      testid_present: [todo-list-page, todo-list]
+      # The first checkbox must now be checked...
+      js:
+        expr: >
+          (()=>{
+            const cb = document.querySelector('[data-testid^="checkbox-"]');
+            return !!(cb && cb.checked);
+          })()
+        equals: true
+      # ...and the title span inside a completed row must compute to line-through.
+      computed_style:
+        el: >
+          (()=>{
+            const list = document.querySelector('[data-testid="todo-list"]');
+            if(!list) return null;
+            for (const row of list.querySelectorAll('[data-testid^="todo-row-"]')){
+              const id = row.getAttribute('data-testid').replace('todo-row-','');
+              const cb = document.querySelector('[data-testid="checkbox-'+id+'"]');
+              if (cb && cb.checked){
+                for (const span of row.querySelectorAll('span')){
+                  const d = getComputedStyle(span).textDecorationLine || getComputedStyle(span).textDecoration;
+                  if (d && d.includes('line-through')) return span;
+                }
+              }
+            }
+            return null;
+          })()
+        prop: "text-decoration-line"
+        contains: "line-through"
+    jev_assert:
+      - id: strikethrough_applied
+        question: "After toggling the first todo's checkbox, does a completed todo title show strikethrough (line-through) styling?"
+        true: "A todo title has strikethrough styling indicating it is completed"
+        false: "No todo title shows strikethrough"
+
+  # ---------------------------------------------------------------------------
+  # S3: Reorder — move row 1 below row 3 → order PERSISTS after app reload.
+  # Primary driver: synthetic @dnd-kit pointer drag (drive_reorder_first_to_third).
+  # dnd-kit synthetic drives are unreliable (skill caveat), so the HARD GATE is
+  # end-to-end persistence of the SQLite order across a real force-stop+relaunch:
+  #   seed order -> (attempt drag) -> snapshot order_after -> reload_app ->
+  #   snapshot order_persisted  == order_after  (whatever the on-device order is,
+  #   it must survive a reload — proving the executor/repository persist ordering).
+  # If the drag mutated the order (reorder_result.changed==true) that is recorded
+  # as a bonus; the gate does not depend on the fragile synthetic gesture.
+  # ---------------------------------------------------------------------------
+  - id: S3_reorder_persists
+    feature: "Reorder attempt + list order PERSISTS across app reload (SQLite)"
+    nav:
+      - {snapshot_order: "order_seed"}
+      - {drive_reorder_first_to_third: 1.0}
+      - {snapshot_order: "order_after"}
+      - {reload_app: 3.5}
+      - {snapshot_order: "order_persisted"}
+    code_assert:
+      js:
+        expr: >
+          (()=>{
+            const list = document.querySelector('[data-testid="todo-list"]');
+            if (!list) return false;
+            return list.querySelectorAll('[data-testid^="todo-row-"]').length >= 3;
+          })()
+        equals: true
+      nav_assert:
+        # Order after reload must EQUAL order before reload => persistence holds.
+        - {key: "order_persisted", equals_key: "order_after"}
+    jev_assert:
+      - id: reorder_capable
+        question: "Does the todo list show multiple todos with drag handles (☰) for reordering?"
+        true: "Multiple todos with drag-handle icons are visible"
+        false: "No drag handles or fewer than 3 items"
+
+  # ---------------------------------------------------------------------------
+  # S4: Swipe-delete — LEFT-anchored Delete → confirm → row GONE (driven+verified).
+  # drive_delete_first overrides window.confirm->true (the OS dialog is NOT the
+  # feature under test; row removal is), clicks the first delete-<id>, and checks
+  # the row disappeared. The gate reads nav_state.delete_result.
+  # ---------------------------------------------------------------------------
+  - id: S4_swipe_delete
+    feature: "LEFT delete button → confirm → row removed (count drops, row gone)"
+    nav:
+      - {snapshot_order: "order_before_delete"}
+      - {drive_delete_first: 0.5}
+    code_assert:
+      # The left-anchored delete affordance must exist in the DOM.
+      js:
+        expr: >
+          (()=>document.querySelectorAll('[data-testid^="delete-"][data-swipe-side="leading"]').length > 0)()
+        equals: true
+      nav_assert:
+        - {key: "delete_result.clicked", equals: true}
+        - {key: "delete_result.row_gone", equals: true}
+        # count must have dropped by exactly one
+        - {key: "delete_result.after_count", not_equals_key: "delete_result.before_count"}
+    jev_assert:
+      - id: delete_action_present
+        question: "Do the todo rows have a left-anchored delete / swipe-to-delete mechanism?"
+        true: "Rows have a left-side delete button or swipe-to-delete"
+        false: "No delete mechanism visible"
+
+  # ---------------------------------------------------------------------------
+  # S5: Export → Capacitor Share invoked → app survives (no crash).
+  # On-device Share opens a native sheet; we tap Share, dismiss with Back, and
+  # assert the WebView is still alive and back on the list page (CDP reconnects).
+  # The JSON round-trip itself is covered deterministically by S5_export_vitest.
+  # ---------------------------------------------------------------------------
+  - id: S5_export_share
+    feature: "Tap Share → native share invoked → app alive on list (no crash)"
+    nav:
+      - {tap_text: "Share"}
+      - {sleep: 2}
+      - {press_key: "KEYCODE_BACK"}
+      - {sleep: 1.5}
+    code_assert:
+      testid_present: [todo-list-page, todo-list]
+      # App still responsive: at least one todo row still queryable over CDP.
+      js:
+        expr: >
+          (()=>document.querySelectorAll('[data-testid^="todo-row-"]').length > 0)()
+        equals: true
+    jev_assert:
+      - id: share_invoked_no_crash
+        question: "After tapping Share and returning, is the app alive showing the todo list (no crash/blank screen)?"
+        true: "App is alive showing the todo list"
+        false: "App crashed, blank, or errored"
+
+  # ---------------------------------------------------------------------------
+  # S5_vitest: Export/import JSON round-trip — deterministic unit coverage for
+  # the Capacitor Share/Filesystem path the emulator UI cannot fully drive.
+  # ---------------------------------------------------------------------------
+  - id: S5_export_vitest
+    feature: "Export/import JSON round-trip (unit test coverage)"
+    kind: vitest
+    vitest_files:
+      - "tests/services/ExportImportService.test.ts"

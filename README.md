@@ -1,166 +1,117 @@
-# VitoTodoList - Android Todo List App
+# VitoTodoList — Android Todo List
 
-A feature-rich Todo List application for Android built with .NET MAUI, targeting Android API 35.
+A todo-list app for **Android**, built with **React 18 + TypeScript 5 + Vite 7**
+and shipped as a native Android app via **Capacitor 8**. Todos persist in on-device
+SQLite, which is shared with a native Kotlin home-screen widget.
+
+> Reworked from the original .NET MAUI app. The MAUI sources were removed on the
+> `feat/rework-react-capacitor` branch; see git history for the previous version.
 
 ## Features
 
-### Core Functionality
-- **CRUD Operations**: Create, Read, Update, and Delete todo items
-- **SQLite Database**: Local persistent storage for all todo items
-- **Optional Deadlines**: Set deadlines with month, day, and hour precision
-- **Completion Tracking**: Mark items as complete with timestamps
-- **Item Reordering**: Move items up and down in the list
+- **CRUD** todos with title, optional description, optional deadline.
+- **On-device SQLite** persistence (`@capacitor-community/sqlite`).
+- **Completion tracking** — checkbox toggles strikethrough + records completion time.
+- **Drag-reorder** the list (`@dnd-kit`, live reorder with autoscroll).
+- **Swipe-to-delete** — left-anchored red Delete revealed by a rightward swipe, with
+  a confirm dialog.
+- **Export / Import** todos as JSON (tolerant import: accepts both the MAUI PascalCase
+  export and camelCase).
+- **Share** the exported JSON via any installed app (`@capacitor/share`).
+- **Home-screen widget** (native Kotlin, RemoteViews) showing a scrollable todo list,
+  tap-to-open, reading the same SQLite file the app writes.
 
-### Advanced Features
-- **Android Home Screen Widget**
-  - Resizable widget showing your todo items
-  - **Scrollable list** - view unlimited todo items with native scrolling
-  - Uses RemoteViews collection for optimal performance
-  - Tap to open the full app
-  - Auto-updates when todos change
-  
-- **Export/Import**
-  - Export todos to JSON format
-  - Import todos from JSON files
-  - Preserve all data including deadlines and completion status
+## Tech stack
 
-- **Share Functionality**
-  - Share your todo list via any installed app
-  - Compatible with Google Drive, OneDrive, email, etc.
+- React 18 + TypeScript 5, Vite 7
+- Capacitor 8 (Android)
+- `@capacitor-community/sqlite` (on-device SQLite)
+- `@dnd-kit` (reorder), `@capacitor/share` + `@capacitor/filesystem` (export)
+- Vitest + Testing Library (tests)
+- Native Kotlin widget (RemoteViews)
 
-## Technology Stack
+## Prerequisites
 
-- **.NET MAUI 9.0** - Cross-platform framework
-- **Android API 35** - Target platform
-- **SQLite** - Local database (sqlite-net-pcl)
-- **C# 12** - Programming language
+- Node.js + npm
+- JDK 21 and the Android SDK (platform-tools, emulator, a system image)
+- An Android emulator or device
 
-## Project Structure
+On this machine specifically:
+- `npm install` crashes under the current npm/arborist — use
+  `npm install --legacy-peer-deps`.
+- No system Java; use the Homebrew JDK 21:
+  `export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`
 
-```
-VitoTodoList/
-├── Models/
-│   └── TodoItem.cs              # Data model for todo items
-├── Data/
-│   └── TodoDatabase.cs          # SQLite database access
-├── Services/
-│   └── ExportImportService.cs   # JSON export/import logic
-├── Converters/
-│   ├── BoolToTextDecorationConverter.cs
-│   ├── StringToBoolConverter.cs
-│   └── HasValueConverter.cs
-├── Platforms/
-│   └── Android/
-│       ├── Widgets/
-│       │   ├── TodoWidgetProvider.cs    # Widget implementation
-│       │   ├── TodoWidgetService.cs     # RemoteViewsService for widget
-│       │   ├── TodoWidgetFactory.cs     # RemoteViewsFactory for data
-│       │   └── WidgetUpdateHelper.cs    # Widget update helper
-│       └── Resources/
-│           ├── layout/
-│           │   ├── todo_widget.xml      # Widget layout
-│           │   └── todo_widget_item.xml # Widget list item layout
-│           └── xml/
-│               └── todo_widget_info.xml # Widget configuration
-├── MainPage.xaml                # Main todo list UI
-├── MainPage.xaml.cs            # Main page logic
-├── TodoEditPage.xaml           # Add/Edit todo UI
-└── TodoEditPage.xaml.cs        # Add/Edit logic
+## Install & run
+
+```sh
+npm install --legacy-peer-deps     # install deps (see note above)
+npm run dev                        # Vite dev server (web preview)
+npm run build                      # production web build (dist/)
+npm run cap:sync                   # copy web build into the Android project
+npm run android:run                # build → cap sync → gradle installDebug on a device/emulator
 ```
 
-## Building the App
+To build the Android debug APK directly:
 
-### Prerequisites
-- .NET 9.0 SDK
-- .NET MAUI workload for Android
-- Android SDK (API 35)
-
-### Installation
-
-1. Install .NET MAUI workload:
-```bash
-dotnet workload install maui-android
+```sh
+npm run build && npx cap sync android && (cd android && ./gradlew assembleDebug)
+# → android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-2. Restore dependencies:
-```bash
-dotnet restore vito-todo-list.sln
+(The npm `android:run` uses `./gradlew`, not the Windows `gradlew.bat`.)
+
+## Tests & gate
+
+```sh
+npx tsc --noEmit    # typecheck (de-facto lint — no separate linter)
+npm run build       # vite build
+npm run test        # vitest run
 ```
 
-3. Build the project:
-```bash
-dotnet build vito-todo-list.sln -c Release
+All three must pass before merge. New behaviour requires a new test.
+
+### On-device smoke / regression
+
+Reproducible on-device smoke suite under `.maestro/`:
+
+```sh
+.maestro/smoke/run.sh              # Maestro launch+screenshots + CDP/Jev behavioural scenarios
 ```
 
-4. Deploy to device/emulator:
-```bash
-dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
-```
+See `.maestro/smoke/README.md` for the two-layer design (Maestro boots/launches and
+captures screenshots; a CDP-DOM + TypeSafe-Jev harness runs the deterministic
+behavioural assertions, because a Capacitor WebView's DOM is not in the Android
+accessibility tree).
 
+## Using the widget
 
-5. (Optional) Clean project:
-```bash
-dotnet clean vito-todo-list.sln
-```
+1. Long-press the Android home screen → **Widgets**.
+2. Find **VitoTodoList**, drag it to the home screen, resize as needed.
+3. Tap the widget to open the app. The widget reads the same on-device database the
+   app writes.
 
-6. (Optional) Full clean rebuild:
-```bash
-dotnet clean vito-todo-list.sln;
-dotnet restore vito-todo-list.sln;
-dotnet build vito-todo-list.sln -c Release;
-dotnet build vito-todo-list.sln -t:Run -f net9.0-android35.0
-```
+## Database schema
 
-## Usage
+Table `Todos` in the `vito_todos` SQLite database (shared with the widget):
 
-### Managing Todos
-1. **Add Todo**: Click "Add Todo" button, enter title, optional description and deadline
-2. **Edit Todo**: Click "Edit" button on any todo item
-3. **Complete Todo**: Check the checkbox to mark as complete
-4. **Delete Todo**: Swipe left and tap "Delete" (or use swipe menu)
-5. **Reorder**: Use ↑ and ↓ buttons to move items up or down
+| Column        | Type    | Notes                                   |
+|---------------|---------|-----------------------------------------|
+| `Id`          | INTEGER | PK AUTOINCREMENT                        |
+| `Title`       | TEXT    | NOT NULL, ≤200 chars                     |
+| `Description` | TEXT    | nullable                                |
+| `Deadline`    | TEXT    | nullable, ISO 8601 (local, no `Z`)      |
+| `IsCompleted` | INTEGER | 0/1                                     |
+| `"Order"`     | INTEGER | position (reserved word — always quoted)|
+| `CreatedAt`   | TEXT    | ISO 8601                                |
+| `CompletedAt` | TEXT    | nullable, ISO 8601                      |
 
-### Using the Widget
-1. Long-press on your Android home screen
-2. Select "Widgets"
-3. Find "Todo List Widget"
-4. Drag to home screen
-5. Resize as needed (supports both horizontal and vertical resizing)
-6. Tap widget to open the full app
+## Documentation
 
-### Export/Import
-- **Export**: Click "Export" to save todos as JSON file, then share via any app
-- **Import**: Click "Import", select a JSON file with todo data
-
-### Sharing
-- Click "Share" to share your todo list via installed apps (email, cloud storage, etc.)
-
-## Database Schema
-
-**TodoItem Table:**
-- `Id` (int, PrimaryKey, AutoIncrement)
-- `Title` (string, MaxLength: 200)
-- `Description` (string, nullable)
-- `Deadline` (DateTime, nullable)
-- `IsCompleted` (bool)
-- `Order` (int)
-- `CreatedAt` (DateTime)
-- `CompletedAt` (DateTime, nullable)
-
-## Widget Behavior
-
-- Updates automatically when todos are added, edited, deleted, or reordered
-- **Scrollable ListView** - displays all todo items with native Android scrolling
-- Uses RemoteViewsService and RemoteViewsFactory architecture
-- Completed items shown with ✓, incomplete with ○
-- Supports formatted text (strikethrough for completed, red deadline dates)
-- Empty state message when no todos exist
-- Individual item click support (opens main app)
+- `docs/ARCHITECTURE.md` — layers, schema, widget, conventions.
+- `docs/REWORK_PLAN_react-capacitor.md` — the full rework plan.
+- `.github/copilot-instructions.md` — agent/implementation conventions.
 
 ## License
 
-This project is open source and available under the MIT License.
-
-## Development
-
-Built with ❤️ using .NET MAUI and C#
+MIT.

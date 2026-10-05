@@ -217,14 +217,34 @@ describe("DnD onDragEnd → updateOrder id-sequence mapping (BUGFIX #3)", () => 
       makeTodo({ id: 1, order: 2 }),
     ];
 
-    // Replicate handleDragEnd logic:
+    // Replicate handleDragEnd logic (incl. the no-op guard):
+    //   if (!over || active.id === over.id) return;
     function simulateHandleDragEnd(activeId: number, overId: number | null): void {
-      if (overId === null) return;
+      if (overId === null || activeId === overId) return;
       const newIdOrder = localTodosAfterDrag.map((t) => t.id);
       void reorderFn(newIdOrder);
     }
 
     simulateHandleDragEnd(1, 3); // active=1 dropped on 3
     expect(reorderFn).toHaveBeenCalledWith([2, 3, 1]);
+  });
+
+  it("onDragEnd no-op guard: same-position drop does NOT call reorder", () => {
+    // Regression for the handleDragEnd no-op guard: dropping a row where it
+    // started (active.id === over.id) must NOT fire reorder (no redundant
+    // UPDATE "Order" writes / reload).
+    const reorderFn = vi.fn();
+    const localTodos: Todo[] = [makeTodo({ id: 1 }), makeTodo({ id: 2 })];
+
+    function simulateHandleDragEnd(activeId: number, overId: number | null): void {
+      if (overId === null || activeId === overId) return;
+      void reorderFn(localTodos.map((t) => t.id));
+    }
+
+    simulateHandleDragEnd(1, 1); // dropped on itself
+    expect(reorderFn).not.toHaveBeenCalled();
+
+    simulateHandleDragEnd(1, null); // no drop target
+    expect(reorderFn).not.toHaveBeenCalled();
   });
 });

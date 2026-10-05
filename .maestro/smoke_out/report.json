@@ -7,9 +7,11 @@
     "url": "https://localhost/",
     "code_fails": [],
     "jev": {
-      "todo_added_at_top": 0.82
+      "todo_added_at_top": 0.79
     },
-    "jev_fails": [],
+    "jev_fails": [
+      "todo_added_at_top=0.79<0.8"
+    ],
     "jev_gating": false,
     "nav_evidence": {},
     "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S1_add_todo_appears_top_dom.json"
@@ -89,10 +91,10 @@
     "url": "https://localhost/",
     "code_fails": [],
     "jev": {
-      "delete_action_present": 0.32
+      "delete_action_present": 0.3
     },
     "jev_fails": [
-      "delete_action_present=0.32<0.8"
+      "delete_action_present=0.30<0.8"
     ],
     "jev_gating": false,
     "nav_evidence": {
@@ -135,6 +137,6 @@
     "vitest_files": [
       "tests/services/ExportImportService.test.ts"
     ],
-    "output_tail": "RUN  v4.1.11 /Users/C5418860/temp/vito-todo-list\n\n\n Test Files  1 passed (1)\n      Tests  21 passed | 1 skipped (22)\n   Start at  14:53:04\n   Duration  5.53s (transform 54ms, setup 625ms, import 46ms, tests 10ms, environment 4.57s)"
+    "output_tail": "RUN  v4.1.11 /Users/C5418860/temp/vito-todo-list\n\n\n Test Files  1 passed (1)\n      Tests  21 passed | 1 skipped (22)\n   Start at  15:15:13\n   Duration  511ms (transform 29ms, setup 53ms, import 42ms, tests 6ms, environment 324ms)"
   }
 ]

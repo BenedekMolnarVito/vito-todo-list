@@ -179,7 +179,11 @@ export function TodoListPage({
 
   function handleDragEnd(event: DragEndEvent): void {
     const { active, over } = event;
-    if (!over) return;
+    // No-op guard: a same-position drop needs no persistence. Without this,
+    // dropping a row where it started still fires onReorder → N redundant
+    // UPDATE "Order" statements + a full reload for zero change. handleDragOver
+    // already guards the same case for the live-reorder path.
+    if (!over || active.id === over.id) return;
 
     // Compute final reordered list from localTodos (already live-reordered)
     const finalTodos = localTodos;

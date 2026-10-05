@@ -52,6 +52,15 @@ class TodoWidgetFactory(private val context: Context) : RemoteViewsService.Remot
         }
         private val ISO_FORMAT_LOCAL = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
         private val ISO_FORMAT_LOCAL_ALT = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        /**
+         * Minute-precision local format — this is what the React/TS layer ACTUALLY stores.
+         * useEditTodo composes the deadline as `${date}T${time}` where <input type="time">
+         * yields "HH:mm" (no seconds), so stored deadlines look like "2026-12-25T10:30".
+         * None of the :ss formats above can parse that (SimpleDateFormat is lenient about
+         * VALUES, not MISSING fields), so without this entry every React-created deadline
+         * fails to parse and is hidden in the widget. Keep this in the parse list.
+         */
+        private val ISO_FORMAT_LOCAL_MIN = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US)
         private val MMM_DD_FORMAT = SimpleDateFormat("MMM dd", Locale.getDefault())
         private val HH_MM_FORMAT = SimpleDateFormat("HH:mm", Locale.getDefault())
     }
@@ -221,8 +230,13 @@ class TodoWidgetFactory(private val context: Context) : RemoteViewsService.Remot
      */
     private fun parseIsoDate(iso: String): Date? {
         return try {
-            // Try common formats in order
-            val formats = listOf(ISO_FORMAT, ISO_FORMAT_ALT, ISO_FORMAT_LOCAL, ISO_FORMAT_LOCAL_ALT)
+            // Try common formats in order. ISO_FORMAT_LOCAL_MIN (minute precision) MUST be
+            // LAST: "yyyy-MM-dd'T'HH:mm" would also match a seconds-bearing string and
+            // silently drop the seconds, so the :ss formats must get first crack.
+            val formats = listOf(
+                ISO_FORMAT, ISO_FORMAT_ALT, ISO_FORMAT_LOCAL, ISO_FORMAT_LOCAL_ALT,
+                ISO_FORMAT_LOCAL_MIN,
+            )
             for (fmt in formats) {
                 try {
                     return fmt.parse(iso)

@@ -125,7 +125,7 @@ vito-todo-list/                          (same repo, new stack on branch feat/re
 │   └── templates/                       # optional, copy from treasury-scribe
 ├── src/
 │   ├── main.tsx · App.tsx               # entry + root (router, DB bootstrap, nav)
-│   ├── models/      Todo.ts             # interface + factory + withComputedProps
+│   ├── models/      Todo.ts             # interface + factory (createTodo)
 │   ├── data/        DatabaseService.ts · TodoRepository.ts
 │   ├── services/    ExportImportService.ts
 │   ├── hooks/       useTodos.ts · useEditTodo.ts
@@ -145,7 +145,7 @@ a dedicated "remove MAUI" commit after the React app builds green, so history bi
 
 ---
 
-## 4. Data layer design (sql.js, mirrors treasury-scribe)
+## 4. Data layer design (`@capacitor-community/sqlite` on-device SQLite; executor-first repos)
 
 ### Todo model (`src/models/Todo.ts`)
 ```typescript
@@ -161,9 +161,9 @@ interface Todo {
   completedAt: string | null;    // set when isCompleted → true
 }
 ```
-`createTodo(fields)` sets all defaults explicitly. DB rows reconstructed via
-`withComputedProps(raw)` if any computed fields are added later (keep the pattern even if
-Todo has none yet, for parity).
+`createTodo(fields)` sets all defaults explicitly. Todo has no computed fields, so no
+`withComputedProps` helper is needed (unlike treasury-scribe's Transaction); add one only if a
+computed field is introduced later.
 
 ### DatabaseService (`src/data/DatabaseService.ts`)
 - Provider: **`@capacitor-community/sqlite`** — a real on-device SQLite file (NOT sql.js). See
@@ -390,12 +390,34 @@ ordering rules (new-to-top, updateOrder, deadline auto-complete), DDL idempotenc
 Gate.
 
 **Phase 3 — hooks (TDD).**
-`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected executor + mocked share. Gate.
+`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected executor + mocked share.
+Acceptance (testable):
+- `useTodos` exposes `{ todos, loading, add, update, toggleComplete, remove, reorder, exportJson,
+  importJson }`; `toggleComplete(id)` sets `completedAt=now` when completing / `null` when
+  un-completing and persists; `remove(id)` only deletes after a confirm callback resolves true;
+  `reorder(fromId,toId|newIdOrder)` calls `TodoRepository.updateOrder` and reflects new order.
+- `useEditTodo(id?)`: `title` required and ≤200 chars (save rejected otherwise with a validation
+  flag); deadline is composed from a date + a time only when `hasDeadline` is true, else `null`;
+  `save()` inserts when `id` absent (lands at top) or updates when present.
+- Both hooks accept an injectable executor + `share` fn; no direct Capacitor import at call time.
+Gate.
 
 **Phase 4 — UI components.**
 `App.tsx` (router + DB bootstrap), `TodoListPage`, `TodoEditPage`, `TodoRow`,
-`SortableTodoRow` (@dnd-kit live reorder + autoscroll — BUGFIX #3), `SwipeToDelete`
-(left-anchored, rightward-swipe — CHANGE #4). Component tests. Add `data-testid`s. Gate.
+`SortableTodoRow` (@dnd-kit — BUGFIX #3), `SwipeToDelete` (react-swipeable-list — CHANGE #4).
+Acceptance (testable):
+- BUGFIX #3: dragging a row reorders the list in REAL TIME (list state changes during
+  `onDragOver`, not only on drop); `DndContext autoScroll` is enabled so dragging near the
+  bottom edge scrolls the list; drag is activated by a long-press on the `☰` handle; a plain tap
+  on the row opens the editor (no drag); on drop, order persists via `updateOrder`.
+- CHANGE #4: the red Delete sits on the LEFT (`leadingActions`) and is revealed by a rightward
+  (left-to-right) swipe; triggering it shows the confirm dialog; confirming removes the row.
+  A unit/component test asserts the delete action is in `LeadingActions` (left), NOT trailing.
+- Visual: keep the existing yellow theme; completed items show strikethrough title; past-deadline
+  items show as completed; deadline label `Due: MMM dd, HH:mm`.
+- Every interactive element gets a stable `data-testid` (row, drag handle, delete, checkbox,
+  add button, title/description/deadline inputs, save/cancel) for CDP+JEV targeting.
+Gate.
 
 **Phase 5 — Android shell + native widget (Option W2 — see §6).**
 `npx cap sync android`; wire `@capacitor-community/sqlite` on Android (the real DB file).
@@ -411,9 +433,13 @@ dumps + `report.json` under `.maestro/smoke_out/`. This is a required deliverabl
 optional. Commit the harness + evidence.
 
 **Phase 7 — remove MAUI + docs.**
-Delete the MAUI sources (`*.xaml`, `*.cs`, `VitoTodoList.csproj`, `Platforms/` MAUI bits,
-`.sln`) in a dedicated commit once the React app is green on-device. Write `docs/ARCHITECTURE.md`
-mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
+Delete the MAUI sources (per §9 Q2 list) in a dedicated commit once the React app is green
+on-device. Write `docs/ARCHITECTURE.md` mirroring treasury-scribe's. Update `README.md`.
+**Update `AGENTS.md`** to describe the new React+TS+Vite+Capacitor stack, the toolchain
+(`npm run test` / `build` / `npx tsc --noEmit` gate, `cap:sync`, `android:run` with
+`./gradlew`), the layer duties, the W2 SQLite+widget decision, and the conventions
+(executor-first repo fns, test-first, no-globals vitest) — the current MAUI `AGENTS.md`/
+copilot-instructions must not describe a stack that no longer exists. Open PR into `develop`.
 
 ---
 
@@ -466,7 +492,8 @@ mirroring treasury-scribe's. Update `README.md`. Open PR into `develop`.
 5. **DOM-based JEV smoke harness green on the emulator** (required deliverable) — CDP DOM
    dumps + `report.json` as evidence for all §7 scenarios.
 6. Conventional commits on `feat/rework-react-capacitor`; PR into `develop`.
-7. `docs/ARCHITECTURE.md` + `README.md` updated to the new stack.
+7. `docs/ARCHITECTURE.md`, `README.md`, AND `AGENTS.md` updated to the new stack (no residual
+   MAUI references anywhere in docs/instructions).
 8. **Legacy JSON export round-trips** (§12): the user's existing MAUI export imports cleanly
    into the reworked app with no data loss, verified by a test against the reference fixture
    AND against the user's real file before they rely on it.
@@ -494,13 +521,31 @@ System.Text.Json defaults apply:
 - Pretty-printed, 2-space indent (irrelevant to parsing).
 
 A reference fixture reproducing this exactly: `tests/fixtures/legacy-maui-export.sample.json`.
+The user's REAL exported file is also in the repo: `docs/todos_export_20261005_130422.json`
+(46 todos). ⚠️ It contains PERSONAL DATA (contacts, and at least one credential-looking
+string). Treat it as sensitive: use it only as a local import-test fixture, never print/log its
+values, and do not commit it to any public remote. Confirmed: the real file matches the
+format in 12.1 exactly (array, PascalCase, declaration order, ISO no-offset dates, nulls).
 
-> ⚠️ **Could not run the real .NET exporter** — this machine has no .NET SDK installed (only
-> Android SDK/Java/adb/emulator), so the MAUI app can't be built here to produce a live
-> sample. The fixture above is hand-constructed from System.Text.Json's deterministic default
-> behaviour for these exact types. **Before the user trusts the import with their real data,
-> validate the importer against their ACTUAL exported file** (ask them to share it, or diff its
-> top-level shape against the fixture). Do not claim round-trip success on the fixture alone.
+> ✅ **Validated against the user's real export.** The hand-built fixture's shape is confirmed
+> correct by the real file. The real file additionally exercises the escaping/encoding and
+> multiline cases below — the importer MUST handle all of them.
+
+**Encoding/escaping facts observed in the REAL file (importer + round-trip MUST handle):**
+- System.Text.Json escapes many chars as `\uXXXX`: `+`→`\u002B`, `>`→`\u003E`, `<`→`\u003C`,
+  `'`→`\u0027`, `&`→`\u0026`, and ALL non-ASCII (Hungarian accents `á`→`\u00E1`, `ő`→`\u0151`,
+  `ü`→`\u00FC`, `ö`→`\u00F6`, `í`→`\u00ED`, uppercase `Á É Ö Ü` etc.). These are standard JSON
+  unicode escapes — `JSON.parse()` decodes them natively, so IMPORT needs no special handling.
+- BUT a rework EXPORT via `JSON.stringify` emits raw UTF-8 (does NOT re-escape to `\uXXXX`), so
+  the exported bytes will DIFFER from the old file even for identical data.
+  **Round-trip tests MUST compare PARSED VALUES, never raw bytes/strings.**
+- Descriptions contain embedded newlines (`\n`) — multiline text must survive round-trip.
+- Fractional seconds vary in length (7 digits like `.2710849`, but also `.062671`, `.754714`).
+  Date parsing must accept variable-precision fractional seconds (and `null`).
+- Date-only deadlines appear as `...T00:00:00` (midnight). The widget's Hungarian relative-day
+  logic keys off this (time == 00:00 → show day name only) — preserve it (see §6).
+- `Id` values are large and non-contiguous (e.g. 526, 7, 587) and `Order` is 0..45 ascending —
+  import ignores the old `Id` (reassigns) but the reverse-then-insert rule reproduces order.
 
 ### 12.2 Legacy → new `Todo` model field mapping
 The new TS model (§4) uses camelCase. The importer must accept PascalCase legacy keys and map:
@@ -541,7 +586,97 @@ with the old file is wanted, an export option could emit PascalCase — not requ
 3. Tolerant keys: a camelCase file AND a PascalCase file both import to identical todos.
 4. Deadline/date parsing: ISO strings with and without fractional seconds both parse.
 5. Invalid JSON → graceful error, no DB mutation.
-6. (Manual, before go-live) import the user's REAL exported file on-device and confirm the
-   list matches what they had.
+6. (Required, before go-live) import the user's REAL file
+   `docs/todos_export_20261005_130422.json` in a test (or on-device) → all 46 todos present,
+   Hungarian accents and `\u002B`/`\u003E` sequences render as proper characters, multiline
+   descriptions intact, completed item (`IsCompleted:true` with `CompletedAt`) preserved,
+   order matches the original top-to-bottom sequence. Do NOT print the file's contents in logs.
+
+---
+
+## 13. Execution model — subagent-driven, fresh-context swarm
+
+Implementation will be an ORCHESTRATED SWARM: a parent dispatches subagents, each with a
+FRESH, ISOLATED context window that knows NOTHING of this conversation. Write and sequence the
+work so that holds. Rules the orchestrator and every task MUST follow:
+
+### 13.1 This plan is the single source of truth
+- Every subagent task says, up front: "Read `docs/REWORK_PLAN_react-capacitor.md` (authoritative)
+  and `AGENTS.md` first." Do NOT paste large briefs inline — large inline dispatch prompts time
+  out the stream. Keep the dispatch prompt SHORT and point at the file.
+- Each task names the EXACT files it owns, its acceptance criteria (from the phase + DoD), and
+  the commands to prove green (`npm run test`, `npm run build`, `npx tsc --noEmit`).
+- Subagent reports, diffs, and review packages go to FILES in the worktree, never inline.
+
+### 13.2 Phase dependency order (mostly serial — later phases import earlier ones)
+`0 scaffold → 1 data → 2 services → 3 hooks → 4 UI → 5 android+widget → 6 smoke → 7 cleanup`.
+Phases 1→4 are a dependency chain (services import data, hooks import services, UI imports
+hooks) and should run SERIALLY. Do not parallelize across these layers.
+
+### 13.3 Where parallelism is safe (proven pattern)
+Within a phase, split into FILE-DISJOINT clusters (verify ZERO file overlap first); give each
+cluster its own git worktree + branch (run `npm ci` per worktree — `node_modules` is not
+shared); run tasks serially inside a cluster, clusters in parallel; merge disjoint branches
+back with `--no-ff` (zero conflicts). Examples:
+- Phase 1: `models/Todo.ts` + `data/SqliteExecutor.ts` + `data/DatabaseService.ts` +
+  `data/TodoRepository.ts` mostly touch distinct files but `TodoRepository` imports the model
+  and executor — keep Phase 1 as ONE cluster (serial) to avoid import races.
+- Phase 4: `SortableTodoRow.tsx` (drag) and `SwipeToDelete.tsx` (swipe) are file-disjoint and
+  can be two parallel sub-tasks, each merged `--no-ff`; `TodoListPage.tsx` that composes both
+  is a THIRD serial task AFTER both merge.
+
+### 13.4 Model tier per task (resolve alias from config, don't hardcode)
+- deep: architecture/ambiguous/root-cause — e.g. the SqliteExecutor abstraction + widget
+  SQLite-sharing design, the @dnd-kit live-reorder+autoscroll integration.
+- standard (default): scoped implementation with clear acceptance — most phases/files.
+- quick: verification, fetches, mechanical checks — e.g. "run the gate and report pass/fail".
+
+### 13.5 Fresh-context guardrails (because subagents know nothing)
+- Pass every constraint the task needs IN the task context or via the plan file — never assume
+  shared memory of this chat.
+- Verify external side effects yourself (file written, APK installed, DB row present) — a
+  subagent's "done" is a self-report, not proof. For on-device claims require a real artifact
+  (APK path, adb output, DOM dump).
+- A subagent cannot ask the user questions. If a task hits a genuine ambiguity not resolved by
+  the plan, it must STOP and report back to the parent, not guess.
+- Commit after every green gate (see §8). Each phase/cluster commit is a revert point.
+- Children cannot close/transition tracked work; the parent applies merges and transitions.
+
+### 13.6 Smoke-test subagent (Phase 6) specifics
+The DOM-based JEV harness needs a running emulator + the installed APK + `TYPESAFE_API_KEY`.
+That environment is NOT reproducible in a bare child context — run Phase 6 either in the parent
+or in a child explicitly given the env bootstrap (adb/emulator PATH, key load per the
+android-webview-jev-testing skill). The child returns the DOM dumps + `report.json` paths; the
+parent verifies them.
+
+---
+
+## 14. Plan review record (JEV AC-completeness + manual consistency pass)
+
+Reviewed with the `jev-team-roles` `ac_completeness` scorer (TypeSafe JEV) per phase, plus a
+manual cross-section consistency sweep. Date: 2026-10-05.
+
+JEV AC-completeness scores (higher = more complete/testable):
+| Phase | Score |
+|-------|-------|
+| 0 scaffold | 1.63 |
+| 1 data layer | 1.71 |
+| 2 services (export/import) | 1.94 |
+| 3 hooks | 1.55 → tightened |
+| 4 UI | 1.54 → tightened |
+| 5 android+widget (W2) | 1.68 |
+| 6 smoke (JEV) | 1.65 |
+| 7 cleanup+docs | 1.55 |
+
+Findings & actions:
+- No phase was a severe outlier; the plan is uniformly specified. Phases 3 (hooks) and 4 (UI)
+  scored lowest (behavioural/subjective ACs) → both were rewritten with explicit, testable
+  acceptance criteria (see §8).
+- Manual sweep fixed stale references: §4 header no longer says "sql.js"; the `withComputedProps`
+  helper is marked not-needed (Todo has no computed fields); confirmed no residual Option-W1 /
+  JSON-snapshot-bridge wording remains in the active decision (only in the §6/§10 "resolved by
+  W2" context lines).
+- Known residual sql.js mentions are INTENTIONAL (they state the deliberate divergence: "NOT
+  sql.js"), not inconsistencies.
 
 

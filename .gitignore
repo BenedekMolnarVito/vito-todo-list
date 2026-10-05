@@ -38,6 +38,10 @@ local.properties
 # Android Studio generated files and folders
 captures/
 .externalNativeBuild/
+
+# Sensitive: user's real todo export (personal data + credential-like strings).
+# Kept locally as an import-test fixture ONLY — never commit/push to the GitHub remote.
+docs/todos_export_*.json
 .cxx/
 *.aab
 *.apk

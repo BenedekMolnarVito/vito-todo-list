@@ -51,11 +51,35 @@ function rowToTodo(row: TodoRow): Todo {
 const SELECT_COLS = `Id, Title, Description, Deadline, IsCompleted, "Order", CreatedAt, CompletedAt`;
 
 // ---------------------------------------------------------------------------
+// isDeadlinePast — chronological "is this deadline at or before now?"
+//
+// MAUI parity: MainPage.xaml.cs did `Deadline.Value <= DateTime.Now`, i.e. a
+// CHRONOLOGICAL compare in LOCAL time. A plain string `<=` is WRONG here: the
+// app stores deadlines local-no-Z, minute-precision (`"2026-12-25T17:00"`, see
+// useEditTodo `${date}T${time}`), while a UTC `toISOString()` now carries a `Z`
+// and sub-second digits — so lexicographic `deadline <= now` compares mismatched
+// formats and mis-fires near the boundary (e.g. 17:00 local deadline vs 15:30Z
+// now reads as "not past" in CEST even though wall-clock is past-due).
+//
+// `new Date(s)` parses an ISO string with a `Z`/offset as absolute, and a
+// local-no-Z string as LOCAL time — exactly the MAUI semantics for both the
+// app's own values and Z-suffixed imported ones. Compare epoch millis instead.
+// ---------------------------------------------------------------------------
+function isDeadlinePast(deadline: string, nowMs: number): boolean {
+  const deadlineMs = new Date(deadline).getTime();
+  // Unparseable deadline → do NOT auto-complete (fail safe, mirrors MAUI's
+  // null-guard which only acted on a valid DateTime).
+  if (Number.isNaN(deadlineMs)) return false;
+  return deadlineMs <= nowMs;
+}
+
+// ---------------------------------------------------------------------------
 // getAllTodos
 // Replicates MAUI GetItemsAsync + LoadTodosAsync:
 //   1. SELECT … ORDER BY "Order" ASC, CreatedAt DESC
-//   2. For each row: if deadline is non-null AND deadline <= now → force
-//      isCompleted=true, set completedAt=now if null, PERSIST the flip.
+//   2. For each row: if deadline is non-null AND deadline is chronologically
+//      past (see isDeadlinePast) → force isCompleted=true, set completedAt=now
+//      if null, PERSIST the flip.
 //   3. Return the post-flip list.
 // ---------------------------------------------------------------------------
 export async function getAllTodos(exec: SqliteExecutor): Promise<Todo[]> {
@@ -64,13 +88,18 @@ export async function getAllTodos(exec: SqliteExecutor): Promise<Todo[]> {
   );
 
   const now = new Date().toISOString();
+  const nowMs = Date.now();
   const result: Todo[] = [];
 
   for (const row of rows) {
     const todo = rowToTodo(row);
 
-    // Auto-complete: deadline is past → force completed + persist
-    if (todo.deadline !== null && todo.deadline <= now && !todo.isCompleted) {
+    // Auto-complete: deadline is chronologically past → force completed + persist
+    if (
+      todo.deadline !== null &&
+      !todo.isCompleted &&
+      isDeadlinePast(todo.deadline, nowMs)
+    ) {
       const completedAt = now;
       await exec.run(
         `UPDATE Todos SET IsCompleted = 1, CompletedAt = ? WHERE Id = ?`,

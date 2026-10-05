@@ -241,6 +241,57 @@ describe("deadline auto-complete (getAllTodos)", () => {
     // completedAt should be unchanged (the existing value, not overwritten)
     expect(t?.completedAt).toBe(existingCompletedAt);
   });
+
+  // -------------------------------------------------------------------------
+  // Regression: local-no-Z (minute-precision) deadlines — the format the app
+  // ACTUALLY stores via useEditTodo `${date}T${time}` (e.g. "2026-12-25T17:00").
+  //
+  // The former impl did `todo.deadline <= now` where now = toISOString() (UTC-Z,
+  // sub-second). That is a LEXICOGRAPHIC compare of mismatched formats, not a
+  // chronological one, so a wall-clock-past local deadline could read as "not
+  // past" near the boundary. The existing fixtures above all use Z-suffixed
+  // UTC strings and so never exercised this. These do.
+  // -------------------------------------------------------------------------
+
+  /** Format a Date as the app's stored deadline: local, no Z, minute precision. */
+  function toLocalNoZMinute(d: Date): string {
+    const pad = (n: number): string => String(n).padStart(2, "0");
+    return (
+      `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+      `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    );
+  }
+
+  it("auto-completes a local-no-Z deadline that is wall-clock PAST (BUG regression)", async () => {
+    // 90 minutes in the past, local wall clock, stored as "YYYY-MM-DDThh:mm".
+    const pastLocal = toLocalNoZMinute(new Date(Date.now() - 90 * 60 * 1000));
+    const id = await addTodo(
+      exec,
+      makeTodoInput({ title: "overdue local-no-Z", deadline: pastLocal })
+    );
+
+    const todos = await getAllTodos(exec);
+    const returned = todos.find((t) => t.id === id);
+    expect(returned?.isCompleted).toBe(true);
+    expect(returned?.completedAt).not.toBeNull();
+
+    const persisted = await getTodoById(exec, id);
+    expect(persisted?.isCompleted).toBe(true);
+  });
+
+  it("does NOT auto-complete a local-no-Z deadline that is wall-clock FUTURE", async () => {
+    // 90 minutes in the future, local wall clock.
+    const futureLocal = toLocalNoZMinute(new Date(Date.now() + 90 * 60 * 1000));
+    const id = await addTodo(
+      exec,
+      makeTodoInput({ title: "upcoming local-no-Z", deadline: futureLocal })
+    );
+
+    const todos = await getAllTodos(exec);
+    const t = todos.find((t) => t.id === id);
+    expect(t?.isCompleted).toBe(false);
+    expect(t?.completedAt).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------

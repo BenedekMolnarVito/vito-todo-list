@@ -11,8 +11,9 @@
  * - Swipe threshold: 80 px rightward.
  * - On trigger → confirm dialog ("Delete '<title>'?" Yes/No) → on confirm, remove().
  * - Plain tap on the row body navigates to edit (handled by TodoRow).
- * - Interaction model: pointer events track leftward/rightward swipe; touch-action
- *   is none on the row so the swipe is not stolen by scroll.
+ * - Interaction model: pointer events track leftward/rightward swipe; the row's
+ *   touch-action is pan-y so vertical scroll still works while horizontal
+ *   swipe is handled by the pointer handlers.
  *
  * Tests: assert the leading (left) delete action config, drive delete via the
  * revealed button's click handler (per android-webview-jev-testing skill caveat).

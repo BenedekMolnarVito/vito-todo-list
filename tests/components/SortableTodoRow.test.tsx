@@ -15,6 +15,7 @@ import { DndContext } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SortableTodoRow } from "../../src/components/SortableTodoRow.js";
+import { computeReorderIdSequence } from "../../src/components/TodoListPage.js";
 import type { Todo } from "../../src/models/Todo.js";
 
 // Cleanup DOM after each test (globals:false — auto-cleanup won't fire)
@@ -205,10 +206,10 @@ describe("DnD onDragEnd → updateOrder id-sequence mapping (BUGFIX #3)", () => 
     expect(reordered.map((t) => t.id)).toEqual([1, 2]);
   });
 
-  it("onDragEnd handler calls reorder with correct id sequence", () => {
-    // This tests the TodoListPage's handleDragEnd logic in isolation.
-    // We replicate the exact logic from TodoListPage's handleDragEnd.
-    const reorderFn = vi.fn();
+  it("onDragEnd handler produces correct id sequence (real computeReorderIdSequence)", () => {
+    // Exercises the ACTUAL handleDragEnd decision logic, imported from
+    // TodoListPage — not a re-implementation. A regression in the real guard
+    // or mapping would fail this test.
 
     // Simulated state after live-reorder during drag (onDragOver already ran)
     const localTodosAfterDrag: Todo[] = [
@@ -217,34 +218,19 @@ describe("DnD onDragEnd → updateOrder id-sequence mapping (BUGFIX #3)", () => 
       makeTodo({ id: 1, order: 2 }),
     ];
 
-    // Replicate handleDragEnd logic (incl. the no-op guard):
-    //   if (!over || active.id === over.id) return;
-    function simulateHandleDragEnd(activeId: number, overId: number | null): void {
-      if (overId === null || activeId === overId) return;
-      const newIdOrder = localTodosAfterDrag.map((t) => t.id);
-      void reorderFn(newIdOrder);
-    }
-
-    simulateHandleDragEnd(1, 3); // active=1 dropped on 3
-    expect(reorderFn).toHaveBeenCalledWith([2, 3, 1]);
+    // active=1 dropped on 3 → persists the already-reordered local id sequence
+    const result = computeReorderIdSequence(1, 3, localTodosAfterDrag);
+    expect(result).toEqual([2, 3, 1]);
   });
 
-  it("onDragEnd no-op guard: same-position drop does NOT call reorder", () => {
-    // Regression for the handleDragEnd no-op guard: dropping a row where it
-    // started (active.id === over.id) must NOT fire reorder (no redundant
-    // UPDATE "Order" writes / reload).
-    const reorderFn = vi.fn();
+  it("onDragEnd no-op guard: same-position drop / no target returns null (real handler)", () => {
+    // Regression for the handleDragEnd no-op guard, exercised via the real
+    // exported computeReorderIdSequence: dropping a row where it started
+    // (active.id === over.id) or with no drop target must return null so the
+    // caller skips onReorder (no redundant UPDATE "Order" writes / reload).
     const localTodos: Todo[] = [makeTodo({ id: 1 }), makeTodo({ id: 2 })];
 
-    function simulateHandleDragEnd(activeId: number, overId: number | null): void {
-      if (overId === null || activeId === overId) return;
-      void reorderFn(localTodos.map((t) => t.id));
-    }
-
-    simulateHandleDragEnd(1, 1); // dropped on itself
-    expect(reorderFn).not.toHaveBeenCalled();
-
-    simulateHandleDragEnd(1, null); // no drop target
-    expect(reorderFn).not.toHaveBeenCalled();
+    expect(computeReorderIdSequence(1, 1, localTodos)).toBeNull(); // dropped on itself
+    expect(computeReorderIdSequence(1, null, localTodos)).toBeNull(); // no drop target
   });
 });

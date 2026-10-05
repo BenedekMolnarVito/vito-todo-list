@@ -19,6 +19,7 @@ import {
   useSensors,
   type DragEndEvent,
   type DragOverEvent,
+  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -48,6 +49,31 @@ export interface TodoListPageProps {
   onExportJson: UseTodosResult["exportJson"];
   onShareExport: UseTodosResult["shareExport"];
   onImportJson: UseTodosResult["importJson"];
+}
+
+// ---------------------------------------------------------------------------
+// computeReorderIdSequence — pure onDragEnd decision logic (BUGFIX #3).
+//
+// Extracted from handleDragEnd so it can be unit-tested directly (the component
+// handler just calls this), rather than a test re-implementing the guard inline.
+//
+//   - Returns null  → no-op: no drop target, or dropped on itself (same id).
+//     A same-position drop must NOT fire onReorder (would issue N redundant
+//     UPDATE "Order" writes + a full reload for zero change).
+//   - Returns the id sequence of `localTodos` otherwise. localTodos is already
+//     live-reordered during handleDragOver, so its current id order IS the
+//     final order to persist.
+//
+// activeId / overId are dnd-kit UniqueIdentifiers (string | number); todo ids
+// are numbers, so the returned sequence is number[].
+// ---------------------------------------------------------------------------
+export function computeReorderIdSequence(
+  activeId: UniqueIdentifier,
+  overId: UniqueIdentifier | null,
+  localTodos: Todo[]
+): number[] | null {
+  if (overId === null || activeId === overId) return null;
+  return localTodos.map((t) => t.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -179,15 +205,18 @@ export function TodoListPage({
 
   function handleDragEnd(event: DragEndEvent): void {
     const { active, over } = event;
-    // No-op guard: a same-position drop needs no persistence. Without this,
-    // dropping a row where it started still fires onReorder → N redundant
-    // UPDATE "Order" statements + a full reload for zero change. handleDragOver
-    // already guards the same case for the live-reorder path.
-    if (!over || active.id === over.id) return;
-
-    // Compute final reordered list from localTodos (already live-reordered)
-    const finalTodos = localTodos;
-    const newIdOrder = finalTodos.map((t) => t.id);
+    // Delegate the pure decision to computeReorderIdSequence (exported +
+    // unit-tested): it returns null for a no-op (no over / same-position drop)
+    // and the final id order otherwise. Without the no-op guard, dropping a row
+    // where it started still fires onReorder → N redundant UPDATE "Order"
+    // statements + a full reload for zero change. handleDragOver already guards
+    // the same case for the live-reorder path.
+    const newIdOrder = computeReorderIdSequence(
+      active.id,
+      over?.id ?? null,
+      localTodos
+    );
+    if (newIdOrder === null) return;
 
     // Persist via useTodos.reorder
     void onReorder(newIdOrder);

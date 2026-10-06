@@ -77,7 +77,12 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 }
                 val clickPendingIntent = PendingIntent.getActivity(context, 0, clickIntent, flags)
 
-                // Empty-view tap → also opens the app
+                // Show the "No todos yet" view when the list is empty (without this the
+                // empty view stays GONE and an empty widget is a dead yellow rectangle).
+                remoteViews.setEmptyView(R.id.widget_list, R.id.empty_view)
+
+                // Tap anywhere on the widget background / empty view → opens the app
+                remoteViews.setOnClickPendingIntent(R.id.widget_container, clickPendingIntent)
                 remoteViews.setOnClickPendingIntent(R.id.empty_view, clickPendingIntent)
 
                 // Item-click template for the list (fill intent set per-item in the Factory)
@@ -91,17 +96,22 @@ class TodoWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        /** Called after an app mutation to refresh all widget instances. */
+        /**
+         * Refreshes every placed widget instance in-process (re-binds views and
+         * triggers Factory.onDataSetChanged → re-reads the DB). Called from
+         * MainActivity.onPause so the widget shows the app's latest todos when the
+         * user returns to the home screen. Direct call instead of an
+         * APPWIDGET_UPDATE broadcast: that action is protected on recent Android.
+         */
+        @JvmStatic
         fun updateAllWidgets(context: Context) {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val appWidgetIds = appWidgetManager.getAppWidgetIds(
                 ComponentName(context, TodoWidgetProvider::class.java)
             )
-            val intent = Intent(context, TodoWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+            for (appWidgetId in appWidgetIds) {
+                updateAppWidget(context, appWidgetManager, appWidgetId)
             }
-            context.sendBroadcast(intent)
         }
     }
 }

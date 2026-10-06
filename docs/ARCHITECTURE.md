@@ -116,9 +116,10 @@ local-no-Z across the TS layer and the widget.
 - Layouts under `android/app/src/main/res/{layout,xml}/todo_widget*`.
 
 The widget reads the SAME on-device SQLite file the app writes (plan §6 Option W2),
-so there is no separate widget data store. Refresh is on the ~30-min widget cadence;
-a `updateAllWidgets()` helper exists but the TS→widget push-notify bridge is not
-wired (deferred; see smoke/final-review notes).
+so there is no separate widget data store. Refresh: `MainActivity.onPause` calls
+`TodoWidgetProvider.updateAllWidgets()` (in-process; no broadcast), so the widget
+re-reads the DB whenever the app leaves the foreground; plus the ~30-min widget
+cadence. Tapping the background, the empty view, or an item opens the app.
 
 ## 5. Export / import (`src/services/ExportImportService.ts`)
 

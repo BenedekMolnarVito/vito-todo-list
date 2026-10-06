@@ -12,14 +12,18 @@
 npx tsc --noEmit    # typecheck = de-facto lint (no separate lint cmd)
 npm run build       # vite build
 npm run test        # vitest run — baseline gate
-npm run cap:sync    # web build → android project
-npm run android:run # build → cap sync → gradle installDebug (./gradlew, not .bat)
+npm run cap:sync    # sync existing web build → android project (build first)
+npm run android:run # macOS zsh/bash ONLY: build → sync → ./gradlew installDebug
 ```
 
 Gate = `npx tsc --noEmit` clean + `npm run build` ok + `npm run test` exit 0. New
-behaviour → new test. On THIS Mac: `npm install --legacy-peer-deps` (plain install
-crashes); JDK 21 via Homebrew (`JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/
-openjdk.jdk/Contents/Home`); `@capacitor-community/sqlite` pinned `^8.1.1`.
+behaviour → new test. Development machines include Windows 11 and macOS; label
+OS/shell-specific commands and provide both dialects (see README.md). On Windows
+PowerShell, install with `cmd /c "npm run build && npx cap sync android && cd android && gradlew.bat installDebug"`.
+Use `npm install --legacy-peer-deps` (plain install previously crashed on macOS).
+Set JDK 21 via PowerShell `$env:JAVA_HOME` on Windows; on Apple Silicon macOS use
+`export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`.
+Do not assume the current host is a Mac. `@capacitor-community/sqlite` pinned `^8.1.1`.
 
 ## Architecture (strict layer duty)
 

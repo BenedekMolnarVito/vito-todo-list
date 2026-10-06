@@ -12,16 +12,20 @@ npm run build       # vite build
 npm run test        # vitest run — baseline gate
 npm run test:watch  # vitest watch (TDD red→green)
 npm run dev         # vite dev server (web preview)
-npm run cap:sync    # copy web build → android project
-npm run android:run # build → cap sync → gradle installDebug (uses ./gradlew, not gradlew.bat)
+npm run cap:sync    # copy existing web build → android project (build first)
+npm run android:run # macOS zsh/bash ONLY: build → sync → ./gradlew installDebug
 ```
 
 **Gate (all must pass before merge):** `npx tsc --noEmit` clean + `npm run build` ok
 + `npm run test` exit 0. New behaviour → new test.
 
-Machine-specific (this Mac): `npm install` crashes under the current npm/arborist —
-use `npm install --legacy-peer-deps`. No system Java; use the Homebrew JDK 21
-(`export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`).
+Development machines include Windows 11 and macOS. Provide both command dialects
+with explicit OS/shell labels; do not assume the current host is a Mac. See
+README.md for setup. Windows PowerShell install command:
+`cmd /c "npm run build && npx cap sync android && cd android && gradlew.bat installDebug"`.
+Use `npm install --legacy-peer-deps` (plain install previously crashed on macOS).
+Windows JDK 21 setup uses `$env:JAVA_HOME`; Apple Silicon macOS Homebrew setup uses
+`export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home`.
 `@capacitor-community/sqlite` is pinned `^8.1.1` (6.x needs Capacitor Core 6).
 
 ## Architecture (strict layer duty)

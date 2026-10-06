@@ -127,6 +127,18 @@ export function TodoRow({
       onClick={handleRowClick}
       role="listitem"
     >
+      {/* ☰ drag handle first: left-handed layout */}
+      <span
+        data-testid={`drag-handle-${todo.id}`}
+        style={dragHandleStyle}
+        onClick={handleHandleClick}
+        aria-label="Drag to reorder"
+        role="button"
+        {...(dragHandleProps as Record<string, unknown>)}
+      >
+        ☰
+      </span>
+
       <input
         type="checkbox"
         data-testid={`checkbox-${todo.id}`}
@@ -139,22 +151,13 @@ export function TodoRow({
         aria-label={`Complete ${todo.title}`}
       />
 
-      <span style={titleStyle(todo.isCompleted)}>{todo.title}</span>
+      <span data-testid={`todo-title-${todo.id}`} style={titleStyle(todo.isCompleted)}>
+        {todo.title}
+      </span>
 
       {todo.deadline !== null && (
         <span style={deadlineStyle}>{formatDeadline(todo.deadline)}</span>
       )}
-
-      <span
-        data-testid={`drag-handle-${todo.id}`}
-        style={dragHandleStyle}
-        onClick={handleHandleClick}
-        aria-label="Drag to reorder"
-        role="button"
-        {...(dragHandleProps as Record<string, unknown>)}
-      >
-        ☰
-      </span>
 
       {children}
     </div>

@@ -91,13 +91,7 @@ const headerStyle: CSSProperties = {
   padding: "16px",
   display: "flex",
   alignItems: "center",
-  justifyContent: "space-between",
-};
-
-const titleTextStyle: CSSProperties = {
-  fontSize: "20px",
-  fontWeight: "bold",
-  margin: 0,
+  justifyContent: "flex-start", // add button on the left (left-handed layout)
 };
 
 const addButtonStyle: CSSProperties = {
@@ -246,9 +240,8 @@ export function TodoListPage({
   // -------------------------------------------------------------------------
   return (
     <div style={pageStyle} data-testid="todo-list-page">
-      {/* Header */}
+      {/* Header — add button only, left-aligned (no app name) */}
       <div style={headerStyle}>
-        <h1 style={titleTextStyle}>VitoTodoList</h1>
         <button
           data-testid="add-button"
           style={addButtonStyle}

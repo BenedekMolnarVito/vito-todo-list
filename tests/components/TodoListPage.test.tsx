@@ -68,6 +68,19 @@ describe("TodoListPage", () => {
     expect(screen.getByTestId("add-button")).toBeDefined();
   });
 
+  it("does not render the app name in the header", () => {
+    renderListPage([]);
+    expect(screen.queryByText("VitoTodoList")).toBeNull();
+  });
+
+  it("places the add button on the left of the header (left-handed layout)", () => {
+    renderListPage([]);
+    const addButton = screen.getByTestId("add-button");
+    const header = addButton.parentElement as HTMLElement;
+    expect(header.firstElementChild).toBe(addButton);
+    expect(header.style.justifyContent).toBe("flex-start");
+  });
+
   it("shows loading message when loading=true", () => {
     renderListPage([], true);
     expect(screen.getByText(/loading/i)).toBeDefined();
@@ -123,7 +136,7 @@ describe("TodoListPage", () => {
     const todos = [makeTodo({ id: 3, title: "Done task", isCompleted: true })];
     renderListPage(todos);
     const row = screen.getByTestId("todo-row-3");
-    const titleEl = row.querySelector("span") as HTMLElement;
+    const titleEl = row.querySelector('[data-testid="todo-title-3"]') as HTMLElement;
     expect(titleEl.style.textDecoration).toBe("line-through");
   });
 

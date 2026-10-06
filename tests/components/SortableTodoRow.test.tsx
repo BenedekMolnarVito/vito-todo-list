@@ -110,10 +110,24 @@ describe("SortableTodoRow", () => {
         />
       </DndWrapper>
     );
-    // The title text appears in the row span — find the span specifically
     const row = screen.getByTestId("todo-row-5");
-    const titleEl = row.querySelector("span") as HTMLElement;
+    const titleEl = row.querySelector('[data-testid="todo-title-5"]') as HTMLElement;
     expect(titleEl.style.textDecoration).toBe("line-through");
+  });
+
+  it("places the drag handle as the left-most element of the row (left-handed layout)", () => {
+    const todo = makeTodo({ id: 8 });
+    render(
+      <DndWrapper items={[8]}>
+        <SortableTodoRow
+          todo={todo}
+          onToggleComplete={vi.fn()}
+          onEdit={vi.fn()}
+        />
+      </DndWrapper>
+    );
+    const row = screen.getByTestId("todo-row-8");
+    expect(row.firstElementChild).toBe(screen.getByTestId("drag-handle-8"));
   });
 
   it("calls onEdit when the row body is clicked", () => {

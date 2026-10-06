@@ -1,0 +1,54 @@
+appId: app.servimus.vitotodolist
+name: VitoTodoList smoke (launch + visual capture)
+tags:
+  - smoke
+  - regression
+---
+# VitoTodoList — Maestro reproducible launch + visual-capture flow.
+#
+# ROLE OF MAESTRO HERE (read android-webview-jev-testing skill):
+#   VitoTodoList is a Capacitor WebView. Its DOM is NOT in the Android
+#   accessibility tree, so Maestro's hierarchy/assertVisible see almost nothing
+#   of the WebView content. Therefore Maestro is NOT the behavioral oracle.
+#   Maestro's job is the REPRODUCIBLE on-device entrypoint:
+#     * clean-state launch with permissions granted,
+#     * dismiss any OS permission redirects,
+#     * capture labelled screenshots at each milestone (visual regression evidence),
+#   while the DETERMINISTIC BEHAVIORAL assertions (add/toggle/reorder-persist/
+#   delete/share) run in the CDP+Jev harness (.maestro/smoke/harness.py).
+#
+# One-command regression runs BOTH layers: `.maestro/smoke/run.sh`.
+#
+# Reproduce just this flow:
+#   maestro test .maestro/smoke.yaml
+# Screenshots are written to the Maestro run dir (~/.maestro/tests/<ts>/) and,
+# via run.sh, copied into .maestro/smoke_out/maestro/ alongside the harness report.
+
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+
+# Dismiss up to 3 chained OS permission/overlay screens on first launch.
+- repeat:
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            visible:
+              text: ".*(notification access|battery|optimization|Allow|Settings|While using).*"
+              optional: true
+          commands:
+            - pressKey: Back
+            - waitForAnimationToEnd:
+                timeout: 2000
+
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: 01_app_launched
+
+# The WebView rendered (the native container exposes SOME text). This is a
+# liveness check only — behavioral truth is the CDP+Jev harness.
+- assertVisible:
+    text: ".*"
+- takeScreenshot: 02_list_visible

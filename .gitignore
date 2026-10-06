@@ -38,6 +38,10 @@ local.properties
 # Android Studio generated files and folders
 captures/
 .externalNativeBuild/
+
+# Sensitive: user's real todo export (personal data + credential-like strings).
+# Kept locally as an import-test fixture ONLY — never commit/push to the GitHub remote.
+docs/todos_export_*.json
 .cxx/
 *.aab
 *.apk
@@ -79,3 +83,12 @@ _ReSharper*/
 *.nupkg
 **/packages/*
 !**/packages/build/
+
+# React + Vite + Capacitor (Phase 0+)
+node_modules/
+dist/
+android/app/build/
+.gradle/
+# Sensitive real user export (never commit). The test *fixture*
+# tests/fixtures/legacy-maui-export.sample.json IS committed on purpose.
+docs/todos_export_*.json

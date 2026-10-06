@@ -1,0 +1,250 @@
+{
+  "title": "VitoTodoList",
+  "url": "https://localhost/",
+  "count": 21,
+  "els": [
+    {
+      "i": 0,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": "add-button",
+      "text": "+",
+      "box": [
+        368,
+        44
+      ]
+    },
+    {
+      "i": 1,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": null,
+      "text": "Share",
+      "box": [
+        53,
+        102
+      ]
+    },
+    {
+      "i": 2,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": null,
+      "text": "Export",
+      "box": [
+        120,
+        102
+      ]
+    },
+    {
+      "i": 3,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": null,
+      "text": "Import",
+      "box": [
+        190,
+        102
+      ]
+    },
+    {
+      "i": 4,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-4",
+      "text": "Delete",
+      "box": [
+        48,
+        160
+      ]
+    },
+    {
+      "i": 5,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-4",
+      "text": "on",
+      "box": [
+        30,
+        159
+      ]
+    },
+    {
+      "i": 6,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-4",
+      "text": "\u2630",
+      "box": [
+        383,
+        159
+      ]
+    },
+    {
+      "i": 7,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-3",
+      "text": "Delete",
+      "box": [
+        48,
+        232
+      ]
+    },
+    {
+      "i": 8,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-3",
+      "text": "on",
+      "box": [
+        30,
+        232
+      ]
+    },
+    {
+      "i": 9,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-3",
+      "text": "\u2630",
+      "box": [
+        383,
+        232
+      ]
+    },
+    {
+      "i": 10,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-2",
+      "text": "Delete",
+      "box": [
+        48,
+        305
+      ]
+    },
+    {
+      "i": 11,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-2",
+      "text": "on",
+      "box": [
+        30,
+        305
+      ]
+    },
+    {
+      "i": 12,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-2",
+      "text": "\u2630",
+      "box": [
+        383,
+        305
+      ]
+    },
+    {
+      "i": 13,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-1",
+      "text": "Delete",
+      "box": [
+        48,
+        378
+      ]
+    },
+    {
+      "i": 14,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-1",
+      "text": "on",
+      "box": [
+        30,
+        378
+      ]
+    },
+    {
+      "i": 15,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-1",
+      "text": "\u2630",
+      "box": [
+        383,
+        378
+      ]
+    },
+    {
+      "i": 16,
+      "kind": "text",
+      "tag": "h1",
+      "testid": null,
+      "text": "VitoTodoList"
+    },
+    {
+      "i": 17,
+      "kind": "text",
+      "tag": "span",
+      "testid": null,
+      "text": "Smoke Test Todo"
+    },
+    {
+      "i": 18,
+      "kind": "text",
+      "tag": "span",
+      "testid": null,
+      "text": "Third todo"
+    },
+    {
+      "i": 19,
+      "kind": "text",
+      "tag": "span",
+      "testid": null,
+      "text": "Second todo"
+    },
+    {
+      "i": 20,
+      "kind": "text",
+      "tag": "span",
+      "testid": null,
+      "text": "First todo"
+    }
+  ]
+}

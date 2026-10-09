@@ -56,9 +56,8 @@ Source audited: `MainPage.xaml(.cs)`, `TodoEditPage.xaml(.cs)`, `Models/TodoItem
 | 5 | Checkbox complete toggle + strikethrough on title | `OnCheckBoxChanged` + `BoolToTextDecorationConverter` | Yes |
 | 6 | Auto-complete items whose deadline has passed | `LoadTodosAsync` (`Deadline <= Now → IsCompleted`) | Yes |
 | 7 | Deadline display `Due: MMM dd, HH:mm` | `MainPage.xaml` label | Yes |
-| 8 | Export todos → JSON (timestamped) + share sheet | `OnExportClicked` + `ExportImportService` | Yes (Capacitor Share) |
-| 9 | Import todos from JSON file (new ids, reversed order) | `OnImportClicked` + `ImportFromJsonAsync` | Yes (Capacitor Filesystem/file input) |
-| 10 | Share todos JSON | `OnShareClicked` | Yes (Capacitor Share) |
+|| 8 | Export todos → JSON (timestamped) + download | `OnExportClicked` + `ExportImportService` | Yes (browser download) ||
+|| 9 | Import todos from JSON file (new ids, reversed order) | `OnImportClicked` + `ImportFromJsonAsync` | Yes (file input) ||
 | 11 | Resizable, scrollable Android home-screen **widget**, tap-to-open, shows all items with ✓/•, strikethrough, Hungarian relative-day deadline (ma/hétfő…) | `Platforms/Android/Widgets/*`, `Resources/layout/*` | Yes — **native Kotlin** (see §6, the one hard part) |
 
 ### TodoItem model (current)
@@ -81,7 +80,7 @@ Source audited: `MainPage.xaml(.cs)`, `TodoEditPage.xaml(.cs)`, `Models/TodoItem
 | UI framework | React | 18 | Component UI |
 | Language | TypeScript | 5.x | Primary language |
 | Build tool | Vite | 7.x | Dev server + bundler |
-| Native bridge | Capacitor | 8.x | Android APIs (`@capacitor/core`, `/android`, `/app`, `/share`, `/filesystem`) |
+|| Native bridge       | Capacitor | 8.x | Android APIs (`@capacitor/core`, `/android`, `/app`) |
 | Database | `@capacitor-community/sqlite` | latest | Real on-device SQLite file (shared with native widget — see §6). NOT sql.js — deliberate divergence from treasury-scribe so the Kotlin widget can read the same DB |
 | Routing | React Router | 6.x | Client-side navigation (list ↔ edit) |
 | Drag reorder | `@dnd-kit/core` + `@dnd-kit/sortable` | latest | Pointer-based live reorder + built-in autoscroll (fixes bug #3) |
@@ -132,7 +131,7 @@ vito-todo-list/                          (same repo, new stack on branch feat/re
 │   ├── components/  TodoListPage.tsx · TodoEditPage.tsx · TodoRow.tsx ·
 │   │                SwipeToDelete.tsx · SortableTodoRow.tsx
 │   ├── pages/       TodoListPage · TodoEditPage (thin re-exports)
-│   ├── __mocks__/   @capacitor/share.ts · @capacitor/filesystem.ts (no-op for tests)
+│   ├── __mocks__/   @capacitor-community/sqlite.ts · @capacitor/app.ts (no-op for tests)
 │   ├── assets/      icon.svg
 │   └── types/       assets.d.ts
 ├── android/                             # Capacitor Android shell + native widget (Kotlin, §6)
@@ -211,9 +210,9 @@ Prepared statements with `?` binds, explicit columns, no `SELECT *`.
 
 ### 5.1 Hooks
 - `useTodos()` — list orchestrator: load/refresh, add, update, toggle-complete,
-  delete (with confirm), reorder (live), export/import/share. Accepts injectable
-  `share?: ShareFn` and `onDatabaseChanged` for testability (treasury-scribe pattern).
-  Owns the `Todo[]` state the list renders.
+  delete (with confirm), reorder (live), export/import. Accepts injectable
+  `onDatabaseChanged` for testability (treasury-scribe pattern). Owns the `Todo[]`
+  state the list renders.
 - `useEditTodo(id?)` — edit-form state: title, description, has-deadline + date + time,
   validation (title required, ≤200), save. Mirrors `TodoEditPage` behaviour.
 
@@ -331,8 +330,7 @@ wiring, in exchange for a widget with a real, live data source (no JSON snapshot
   `afterEach` close). No data-layer mocks. Import vitest fns explicitly, no globals. `make*`
   fixture factories. (The on-device app uses `@capacitor-community/sqlite` for the same
   interface.)
-- Capacitor Share/Filesystem/sqlite mocked no-op via `src/__mocks__/`.
-- Coverage per layer, mirroring `tests/`:
+  - Coverage per layer, mirroring `tests/`:
   - `data/`: `DatabaseService` (init DDL idempotent), `TodoRepository`
     (ordering rules: new-item-to-top, updateOrder, deadline auto-complete).
   - `services/`: `ExportImportService` (JSON round-trip, import reverses + new ids).
@@ -390,7 +388,7 @@ ordering rules (new-to-top, updateOrder, deadline auto-complete), DDL idempotenc
 Gate.
 
 **Phase 3 — hooks (TDD).**
-`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected executor + mocked share.
+`hooks/useTodos.ts`, `hooks/useEditTodo.ts`. Tests first with injected executor.
 Acceptance (testable):
 - `useTodos` exposes `{ todos, loading, add, update, toggleComplete, remove, reorder, exportJson,
   importJson }`; `toggleComplete(id)` sets `completedAt=now` when completing / `null` when
@@ -399,7 +397,7 @@ Acceptance (testable):
 - `useEditTodo(id?)`: `title` required and ≤200 chars (save rejected otherwise with a validation
   flag); deadline is composed from a date + a time only when `hasDeadline` is true, else `null`;
   `save()` inserts when `id` absent (lands at top) or updates when present.
-- Both hooks accept an injectable executor + `share` fn; no direct Capacitor import at call time.
+- Both hooks accept an injectable executor; no direct Capacitor import at call time.
 Gate.
 
 **Phase 4 — UI components.**

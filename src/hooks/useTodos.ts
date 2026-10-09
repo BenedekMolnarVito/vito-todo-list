@@ -1,8 +1,7 @@
 /**
  * useTodos — list orchestrator hook.
  *
- * Owns the Todo[] state the UI renders.  All Capacitor-specific concerns
- * (Share, Filesystem) are injected as callbacks — this file has NO direct
+ * Owns the Todo[] state the UI renders.  This file has NO direct
  * @capacitor/* import so it stays unit-testable with a node executor.
  *
  * Exposed interface (plan §8 / task-phase3-brief.md):

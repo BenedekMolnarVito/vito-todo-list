@@ -17,7 +17,6 @@ SQLite, which is shared with a native Kotlin home-screen widget.
   a confirm dialog.
 - **Export / Import** todos as JSON (tolerant import: accepts both the MAUI PascalCase
   export and camelCase).
-- **Share** the exported JSON via any installed app (`@capacitor/share`).
 - **Home-screen widget** (native Kotlin, RemoteViews) showing a scrollable todo list,
   tap-to-open, reading the same SQLite file the app writes.
 
@@ -26,7 +25,7 @@ SQLite, which is shared with a native Kotlin home-screen widget.
 - React 18 + TypeScript 5, Vite 7
 - Capacitor 8 (Android)
 - `@capacitor-community/sqlite` (on-device SQLite)
-- `@dnd-kit` (reorder), `@capacitor/share` + `@capacitor/filesystem` (export)
+- `@dnd-kit` (reorder), `@capacitor-community/sqlite` (on-device SQLite), `@capacitor/app` (lifecycle)
 - Vitest + Testing Library (tests)
 - Native Kotlin widget (RemoteViews)
 

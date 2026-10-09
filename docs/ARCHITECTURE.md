@@ -13,10 +13,9 @@
 | Build / dev        | Vite 7                                             |
 | Native shell       | Capacitor 8 (Android)                              |
 | On-device DB       | `@capacitor-community/sqlite` (^8.1.1)             |
-| Drag reorder       | `@dnd-kit/core` + `@dnd-kit/sortable`              |
-| Swipe-delete       | hand-rolled `SwipeToDelete` (left-anchored)¹       |
-| Share / FS         | `@capacitor/share`, `@capacitor/filesystem`        |
-| Routing            | `react-router-dom`                                 |
+|| Drag reorder       | `@dnd-kit/core` + `@dnd-kit/sortable`              ||
+|| Swipe-delete       | hand-rolled `SwipeToDelete` (left-anchored)¹       ||
+|| Routing            | `react-router-dom`                                 ||
 | Test               | Vitest + Testing Library + jsdom                   |
 | Type/lint gate     | `tsc --noEmit` (no separate linter)                |
 | Widget             | native Kotlin (RemoteViews) reading the shared DB  |
@@ -52,10 +51,10 @@ SQLite file "vito_todos"             shared with the native Kotlin widget (read-
   `Capacitor.isNativePlatform()` — real plugin on device, web-shim in the browser
   and in tests.
 - **Hooks own state, components are dumb.** `useTodos` owns the list state and
-  mutations (add/toggle/remove/reorder/export/share/import); `useEditTodo` owns the
+  mutations (add/toggle/remove/reorder/export/import); `useEditTodo` owns the
   edit-screen state. Components render props and raise callbacks.
-- **Dependency injection, not globals.** Hooks receive the executor, the share
-  function, and a `confirm` function as injected deps — swappable in tests.
+- **Dependency injection, not globals.** Hooks receive the executor and a
+  `confirm` function as injected deps — swappable in tests.
 
 ## 3. Data model & schema
 
@@ -123,12 +122,11 @@ cadence. Tapping the background, the empty view, or an item opens the app.
 
 ## 5. Export / import (`src/services/ExportImportService.ts`)
 
-- JSON export of all todos; shared via `@capacitor/share` (file written with
-  `@capacitor/filesystem`).
+- JSON export of all todos; downloaded via browser native APIs (`Blob`, `URL.createObjectURL`, anchor click).
 - Import is **tolerant**: accepts both PascalCase (MAUI export) and camelCase keys,
   reverses the field semantics per the §12 contract, and re-inserts (IDs reassigned).
-- The Capacitor Share/Filesystem path cannot be fully driven from the WebView in the
-  smoke harness, so the JSON round-trip is covered by the Vitest suite
+- The export/import uses native browser APIs (no Capacitor plugins), so the JSON
+  round-trip is covered by the Vitest suite
   (`tests/services/ExportImportService.test.ts`).
 
 ## 6. Testing & gates
@@ -162,8 +160,8 @@ src/
     useTodos.ts           list state + mutations
     useEditTodo.ts        edit-screen state
   components/
-    TodoListPage.tsx      list + Dnd + export/share/import toolbar
-    TodoEditPage.tsx      add/edit form
+      TodoListPage.tsx      list + Dnd + export/import in header
+      TodoEditPage.tsx      add/edit form
     TodoRow.tsx           row (checkbox, title, drag handle)
     SortableTodoRow.tsx   @dnd-kit sortable wrapper
     SwipeToDelete.tsx     hand-rolled left-anchored swipe-delete + confirm

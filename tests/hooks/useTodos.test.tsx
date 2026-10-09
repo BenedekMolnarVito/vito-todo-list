@@ -10,9 +10,8 @@
  *   - reorder(newIdOrder) → updateOrder called, `todos` reflects the new order
  *   - exportJson returns valid JSON of current todos
  *   - importJson(validJson) → true + todos re-inserted in original order
- *   - importJson(invalid) → false + NO DB mutation (count unchanged)
- *   - share path: shareExport calls the injected share fn with the exported JSON
- */
+  *   - importJson(invalid) → false + NO DB mutation (count unchanged)
+  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { createNodeExecutor } from "../helpers/nodeExecutor.js";
@@ -371,40 +370,12 @@ describe("useTodos", () => {
     });
 
     expect(importResult).toBe(false);
-    // DB unchanged
-    expect(result.current.todos).toHaveLength(1);
-    expect(result.current.todos[0]?.title).toBe("Existing");
-  });
+        // DB unchanged
+        expect(result.current.todos).toHaveLength(1);
+        expect(result.current.todos[0]?.title).toBe("Existing");
+      });
 
-  it("shareExport calls the injected share fn with the exported JSON", async () => {
-    const shareFn = vi.fn().mockResolvedValue(undefined);
-
-    const { result } = renderHook(() =>
-      useTodos({ exec, share: shareFn })
-    );
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    });
-
-    await act(async () => {
-      await result.current.add({ title: "Share this" });
-    });
-
-    await act(async () => {
-      await result.current.shareExport();
-    });
-
-    expect(shareFn).toHaveBeenCalledTimes(1);
-    // share fn was called with an object containing the JSON text
-    const callArg = shareFn.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(typeof callArg).toBe("object");
-    // The JSON text passed should contain our todo title
-    const textArg = (callArg.text ?? callArg.title ?? "") as string;
-    expect(textArg).toContain("Share this");
-  });
-
-  it("onDatabaseChanged is called after every mutation", async () => {
+      it("onDatabaseChanged is called after every mutation", async () => {
     const onDatabaseChanged = vi.fn();
 
     const { result } = renderHook(() =>

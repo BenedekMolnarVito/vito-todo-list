@@ -7,7 +7,7 @@
  *
  * Exposed interface (plan §8 / task-phase3-brief.md):
  *   { todos, loading, add, update, toggleComplete, remove, reorder,
- *     exportJson, shareExport, importJson }
+ *     exportJson, importJson }
  */
 import { useState, useEffect, useCallback } from "react";
 import type { SqliteExecutor } from "../data/SqliteExecutor.js";
@@ -27,20 +27,11 @@ import { exportToJson, importFromJson } from "../services/ExportImportService.js
 // Types
 // ---------------------------------------------------------------------------
 
-/** Thin injectable share function — default no-op. */
-export type ShareFn = (data: {
-  title?: string;
-  text?: string;
-  url?: string;
-  dialogTitle?: string;
-}) => Promise<void>;
-
 /** Confirm callback to gate deletions. */
 export type ConfirmFn = (todo: Todo) => Promise<boolean>;
 
 export interface UseTodosOptions {
   exec: SqliteExecutor;
-  share?: ShareFn;
   onDatabaseChanged?: () => void;
 }
 
@@ -53,7 +44,6 @@ export interface UseTodosResult {
   remove: (id: number, confirm?: ConfirmFn) => Promise<void>;
   reorder: (newIdOrder: number[]) => Promise<void>;
   exportJson: () => string;
-  shareExport: () => Promise<void>;
   importJson: (json: string) => Promise<boolean>;
 }
 
@@ -62,7 +52,6 @@ export interface UseTodosResult {
 // ---------------------------------------------------------------------------
 export function useTodos({
   exec,
-  share,
   onDatabaseChanged,
 }: UseTodosOptions): UseTodosResult {
   const [todos, setTodos] = useState<Todo[]>([]);
@@ -187,16 +176,6 @@ export function useTodos({
   }, [todos]);
 
   // -------------------------------------------------------------------------
-  // shareExport — calls exportJson then the injected share fn
-  // -------------------------------------------------------------------------
-  const shareExport = useCallback(async (): Promise<void> => {
-    const json = exportToJson(todos);
-    if (share !== undefined) {
-      await share({ text: json, title: "VitoTodoList export" });
-    }
-  }, [todos, share]);
-
-  // -------------------------------------------------------------------------
   // importJson
   // importFromJson already reverses the list; caller (this hook) must
   // addTodo each in array order so they land top-to-bottom in original order
@@ -228,7 +207,6 @@ export function useTodos({
     remove,
     reorder,
     exportJson,
-    shareExport,
     importJson,
   };
-}
+  }

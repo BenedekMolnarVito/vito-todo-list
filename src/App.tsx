@@ -144,7 +144,6 @@ function TodoListWrapper({ exec }: TodoListWrapperProps): JSX.Element {
     remove,
     reorder,
     exportJson,
-    shareExport,
     importJson,
   } = useTodos({ exec });
 
@@ -156,7 +155,6 @@ function TodoListWrapper({ exec }: TodoListWrapperProps): JSX.Element {
       onRemove={remove}
       onReorder={reorder}
       onExportJson={exportJson}
-      onShareExport={shareExport}
       onImportJson={importJson}
     />
   );

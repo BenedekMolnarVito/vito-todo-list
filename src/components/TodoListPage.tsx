@@ -7,7 +7,8 @@
  *
  * Renders each row as SwipeToDelete > SortableTodoRow for swipe + drag.
  *
- * Export/share/import controls are also here.
+ * Export/import controls are rendered in the page header alongside the add
+ * button (add on the left, export/import right-aligned on the right).
  */
 import { useState, useRef, type ChangeEvent, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +48,6 @@ export interface TodoListPageProps {
   onRemove: UseTodosResult["remove"];
   onReorder: UseTodosResult["reorder"];
   onExportJson: UseTodosResult["exportJson"];
-  onShareExport: UseTodosResult["shareExport"];
   onImportJson: UseTodosResult["importJson"];
 }
 
@@ -91,7 +91,26 @@ const headerStyle: CSSProperties = {
   padding: "16px",
   display: "flex",
   alignItems: "center",
-  justifyContent: "flex-start", // add button on the left (left-handed layout)
+  justifyContent: "space-between", // add button left, export/import right
+};
+
+// Right-aligned cluster of export/import buttons (replaces the former top toolbar).
+const headerRightStyle: CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  padding: "8px 16px",
+  backgroundColor: YELLOW_MEDIUM,
+};
+
+// Button style shared by the header's Export / Import controls.
+const headerButtonStyle: CSSProperties = {
+  backgroundColor: YELLOW_DARK,
+  color: "#fff",
+  border: "none",
+  borderRadius: "4px",
+  padding: "6px 12px",
+  cursor: "pointer",
+  fontSize: "13px",
 };
 
 const addButtonStyle: CSSProperties = {
@@ -115,23 +134,6 @@ const listStyle: CSSProperties = {
   padding: 0,
 };
 
-const toolbarStyle: CSSProperties = {
-  display: "flex",
-  gap: "8px",
-  padding: "8px 16px",
-  backgroundColor: YELLOW_MEDIUM,
-};
-
-const toolbarButtonStyle: CSSProperties = {
-  backgroundColor: YELLOW_DARK,
-  color: "#fff",
-  border: "none",
-  borderRadius: "4px",
-  padding: "6px 12px",
-  cursor: "pointer",
-  fontSize: "13px",
-};
-
 const loadingStyle: CSSProperties = {
   padding: "24px",
   textAlign: "center",
@@ -148,7 +150,6 @@ export function TodoListPage({
   onRemove,
   onReorder,
   onExportJson,
-  onShareExport,
   onImportJson,
 }: TodoListPageProps): JSX.Element {
   const navigate = useNavigate();
@@ -240,7 +241,7 @@ export function TodoListPage({
   // -------------------------------------------------------------------------
   return (
     <div style={pageStyle} data-testid="todo-list-page">
-      {/* Header — add button only, left-aligned (no app name) */}
+      {/* Header — add button left, export/import right */}
       <div style={headerStyle}>
         <button
           data-testid="add-button"
@@ -250,48 +251,39 @@ export function TodoListPage({
         >
           +
         </button>
-      </div>
-
-      {/* Toolbar */}
-      <div style={toolbarStyle}>
-        <button
-          style={toolbarButtonStyle}
-          onClick={() => { void onShareExport(); }}
-          aria-label="Export and share todos"
-        >
-          Share
-        </button>
-        <button
-          style={toolbarButtonStyle}
-          onClick={() => {
-            const json = onExportJson();
-            const blob = new Blob([json], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `todos_export_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-          aria-label="Export todos as JSON"
-        >
-          Export
-        </button>
-        <button
-          style={toolbarButtonStyle}
-          onClick={handleImportClick}
-          aria-label="Import todos from JSON"
-        >
-          Import
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: "none" }}
-          onChange={(e) => { void handleFileChange(e); }}
-          aria-hidden="true"
-        />
+        <div style={headerRightStyle}>
+          <button
+            style={headerButtonStyle}
+            onClick={() => {
+              const json = onExportJson();
+              const blob = new Blob([json], { type: "application/json" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `todos_export_${Date.now()}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            aria-label="Export todos as JSON"
+          >
+            Export
+          </button>
+          <button
+            style={headerButtonStyle}
+            onClick={handleImportClick}
+            aria-label="Import todos from JSON"
+          >
+            Import
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            style={{ display: "none" }}
+            onChange={(e) => { void handleFileChange(e); }}
+            aria-hidden="true"
+          />
+        </div>
       </div>
 
       {/* List */}

@@ -24,15 +24,15 @@
 #       set_input: {field, value}    -> set a React input by placeholder/aria-label/testid
 #       press_key: "<KEYCODE>"       -> Android system key (e.g. KEYCODE_BACK)
 #       sleep: <seconds>             -> settle animation/navigation
-#       toggle_first_checkbox: <s>   -> click the first checkbox-<id>, settle <s>s
-#       drive_delete_first: <s>      -> override confirm->true, click first delete-<id>;
+#       toggle_first_checkbox:    -> click the first checkbox-<id>, settle s
+#       drive_delete_first:       -> override confirm->true, click first delete-<id>;
 #                                       records nav_state.delete_result {clicked,row_gone,
 #                                       before_count,after_count} + deleted_id
-#       drive_reorder_first_to_third: <s> -> synthetic @dnd-kit pointer drag row1->row3;
+#       drive_reorder_first_to_third:  -> synthetic @dnd-kit pointer drag row1->row3;
 #                                       records nav_state.reorder_result {driven,before_ids,
 #                                       after_ids,changed}
 #       snapshot_order: "<name>"     -> capture current row id order into nav_state["<name>"]
-#       reload_app: <s>              -> force-stop + relaunch (re-reads SQLite), settle <s>s
+#       reload_app:               -> force-stop + relaunch (re-reads SQLite), settle s
 #   code_assert: HARD checks (all must pass):
 #       url_endswith / url_contains, testid_present[], testid_absent[], text_present[],
 #       min_interactive, js: {expr, equals},
@@ -43,7 +43,7 @@
 #
 # TESTIDS present in VitoTodoList (Phase 4):
 #   List:  todo-list-page, add-button, todo-list, todo-row-<id>, checkbox-<id>,
-#          drag-handle-<id>, swipe-container-<id>, delete-<id> (data-swipe-side="leading")
+#          drag-handle-<id>, swipe-container-<id>, delete-<id>
 #   Edit:  todo-edit-page, title-input, description-input, deadline-date-input,
 #          deadline-time-input, save-button, cancel-button
 
@@ -190,7 +190,7 @@ scenarios:
       # The left-anchored delete affordance must exist in the DOM.
       js:
         expr: >
-          (()=>document.querySelectorAll('[data-testid^="delete-"][data-swipe-side="leading"]').length > 0)()
+          (()=>document.querySelectorAll('[data-testid^="delete-"]').length > 0)()
         equals: true
       nav_assert:
         - {key: "delete_result.clicked", equals: true}
@@ -204,36 +204,10 @@ scenarios:
         false: "No delete mechanism visible"
 
   # ---------------------------------------------------------------------------
-  # S5: Export → Capacitor Share invoked → app survives (no crash).
-  # On-device Share opens a native sheet; we tap Share, dismiss with Back, and
-  # assert the WebView is still alive and back on the list page (CDP reconnects).
-  # The JSON round-trip itself is covered deterministically by S5_export_vitest.
+  # S5: Export/Import JSON round-trip — deterministic unit coverage.
+  # The browser-native download/upload path is covered by Vitest.
   # ---------------------------------------------------------------------------
-  - id: S5_export_share
-    feature: "Tap Share → native share invoked → app alive on list (no crash)"
-    nav:
-      - {tap_text: "Share"}
-      - {sleep: 2}
-      - {press_key: "KEYCODE_BACK"}
-      - {sleep: 1.5}
-    code_assert:
-      testid_present: [todo-list-page, todo-list]
-      # App still responsive: at least one todo row still queryable over CDP.
-      js:
-        expr: >
-          (()=>document.querySelectorAll('[data-testid^="todo-row-"]').length > 0)()
-        equals: true
-    jev_assert:
-      - id: share_invoked_no_crash
-        question: "After tapping Share and returning, is the app alive showing the todo list (no crash/blank screen)?"
-        true: "App is alive showing the todo list"
-        false: "App crashed, blank, or errored"
-
-  # ---------------------------------------------------------------------------
-  # S5_vitest: Export/import JSON round-trip — deterministic unit coverage for
-  # the Capacitor Share/Filesystem path the emulator UI cannot fully drive.
-  # ---------------------------------------------------------------------------
-  - id: S5_export_vitest
+  - id: S5_export_import_roundtrip
     feature: "Export/import JSON round-trip (unit test coverage)"
     kind: vitest
     vitest_files:

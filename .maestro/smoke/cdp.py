@@ -21,7 +21,7 @@ CRITICAL GOTCHAS (android-webview-jev-testing skill):
 
 App package: app.servimus.vitotodolist
 """
-import asyncio, json, os, subprocess, time
+import asyncio, json, os, subprocess, time, sys
 import websockets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -30,9 +30,21 @@ APP_ID = os.environ.get("VITO_APP_ID", "app.servimus.vitotodolist")
 MAIN_ACTIVITY = f"{APP_ID}/.MainActivity"
 LOCAL_PORT = int(os.environ.get("VITO_CDP_PORT", "9333"))
 
+IS_WINDOWS = sys.platform.startswith("win")
 
 def _adb(cmd: str) -> str:
     """Run an adb/shell command with the repo-local android env sourced."""
+    if IS_WINDOWS:
+        # On Windows, run adb directly without bash wrapper
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=False)
+        # Handle Windows console encoding (cp437/cp1252)
+        stdout = result.stdout
+        if stdout:
+            try:
+                return stdout.decode('utf-8')
+            except UnicodeDecodeError:
+                return stdout.decode('cp437', errors='replace')
+        return ""
     src = f'[ -f "{ENV_SH}" ] && source "{ENV_SH}"; ' if os.path.exists(ENV_SH) else ""
     return subprocess.run(["bash", "-c", src + cmd], capture_output=True, text=True).stdout
 
@@ -42,30 +54,18 @@ def adb(cmd: str) -> str:
 
 
 def live_ws() -> str:
-    """Re-resolve the current WebView CDP socket, forward it, return page WS url.
-
-    GOTCHA: host Chrome holds :9222 — always forward to LOCAL_PORT (9333).
-    GOTCHA: socket PID changes on WebView respawn — re-resolve every call.
-    GOTCHA: /json may 404; use /json/list (works with forwarded socket).
-    """
+    """Re-resolve the current WebView CDP socket, forward it, return page WS url."""
     _adb("adb forward --remove-all 2>/dev/null >/dev/null")
     sock = _adb(
         "adb shell cat /proc/net/unix | grep -oE 'webview_devtools_remote_[0-9]+' | head -1"
     ).strip()
     if not sock:
-        raise RuntimeError(
-            "No WebView devtools socket found. "
-            "Is the app foregrounded and is this a debug build? "
-            "(adb shell cat /proc/net/unix | grep webview)"
-        )
+        raise RuntimeError("No WebView devtools socket. Is the app foregrounded (debug build)?")
     _adb(f"adb forward tcp:{LOCAL_PORT} localabstract:{sock} >/dev/null")
     listing = _adb(f"curl -s -m5 http://127.0.0.1:{LOCAL_PORT}/json/list")
-    try:
-        pages = [t for t in json.loads(listing) if t.get("type") == "page"]
-    except json.JSONDecodeError:
-        raise RuntimeError(f"CDP /json/list returned non-JSON: {listing[:200]!r}")
+    pages = [t for t in json.loads(listing) if t.get("type") == "page"]
     if not pages:
-        raise RuntimeError("No CDP page target found. Try restarting the app.")
+        raise RuntimeError("No CDP page target found.")
     return pages[0]["webSocketDebuggerUrl"]
 
 
@@ -352,6 +352,7 @@ def press_key(keyevent: str) -> None:
 
 
 def launch() -> None:
+    """Launch the app and wait for it to be in foreground."""
     _adb(f"adb shell am start -n {MAIN_ACTIVITY} >/dev/null 2>&1")
 
 

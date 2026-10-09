@@ -34,7 +34,7 @@ package id is `app.servimus.vitotodolist`.
 React components (src/components/)   stateless render + local UI gesture state only
   ↓   props/callbacks
 React hooks (src/hooks/)             useTodos / useEditTodo own screen state + orchestration
-  ↓   injected deps (executor, share, confirm)
+  ↓   injected deps (executor, confirm)
 Services (src/services/)             ExportImportService: JSON export/import (tolerant schema)
 Repository (src/data/TodoRepository) all SQL; MAUI ordering parity; executor-first functions
   ↓

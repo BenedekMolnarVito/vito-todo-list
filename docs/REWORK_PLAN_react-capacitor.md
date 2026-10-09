@@ -352,7 +352,7 @@ reference runner. Smoke scenarios:
    re-query; drive the reorder through the DOM/hook, not raw adb swipe).
 4. Swipe-delete: rightward swipe reveals a LEFT-anchored red Delete → confirm → row gone
    (drive via the revealed button's DOM click per the skill's adb-swipe caveat).
-5. Export → Capacitor Share invoked (mock/intercept).
+5. Export → download via browser native APIs (no Capacitor plugins).
 
 CDP gotchas (from skill): host Chrome holds :9222 → forward WebView socket to :9333;
 re-resolve `webview_devtools_remote_<PID>` on every CDP call; `/json/list` works, `/json` may

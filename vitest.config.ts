@@ -12,26 +12,18 @@ export default defineConfig({
     cache: false,
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".jsx"],
-    alias: {
-      // Redirect Capacitor plugins to no-op stubs so unit tests can run
-      // outside of a Capacitor/Android WebView context.
-      "@capacitor/share": resolve(
-        __dirname,
-        "src/__mocks__/@capacitor/share.ts"
-      ),
-      "@capacitor/filesystem": resolve(
-        __dirname,
-        "src/__mocks__/@capacitor/filesystem.ts"
-      ),
-      "@capacitor-community/sqlite": resolve(
-        __dirname,
-        "src/__mocks__/@capacitor-community/sqlite.ts"
-      ),
-      "@capacitor/app": resolve(
-        __dirname,
-        "src/__mocks__/@capacitor/app.ts"
-      ),
+      extensions: [".ts", ".tsx", ".js", ".jsx"],
+      alias: {
+        // Redirect Capacitor plugins to no-op stubs so unit tests can run
+        // outside of a Capacitor/Android WebView context.
+        "@capacitor-community/sqlite": resolve(
+          __dirname,
+          "src/__mocks__/@capacitor-community/sqlite.ts"
+        ),
+        "@capacitor/app": resolve(
+          __dirname,
+          "src/__mocks__/@capacitor/app.ts"
+        ),
+      },
     },
-  },
 });

@@ -99,8 +99,8 @@ def run_nav(steps, default_sleep):
                 nav_state[str(arg)] = cdp.row_ids_in_order()
             elif op == "reload_app":
                 # Full persistence check: kill + relaunch so the list re-reads SQLite.
-                cdp.kill_app(); time.sleep(1.5)
-                cdp.launch(); time.sleep(float(arg) if isinstance(arg, (int, float)) else 3.0)
+                cdp.kill_app(); time.sleep(2)
+                cdp.launch(); time.sleep(3)
             else:
                 raise ValueError(f"unknown nav op: {op}")
         else:
@@ -362,8 +362,8 @@ def main():
         cdp.launch(); time.sleep(default_sleep)
         # Dismiss any permission/overlay screens
         for _ in range(3):
-            cdp.press_key("KEYCODE_BACK"); time.sleep(0.8)
-        cdp.launch(); time.sleep(3)
+            cdp.press_key("KEYCODE_BACK"); time.sleep(1)
+        cdp.launch(); time.sleep(12)  # Longer wait for WebView to be ready after pm clear
 
         if not args.no_seed:
             seed_all(spec.get("seed", {}))

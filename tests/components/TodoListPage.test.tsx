@@ -47,7 +47,6 @@ function renderListPage(todos: Todo[], loading = false): void {
         onRemove={vi.fn()}
         onReorder={vi.fn()}
         onExportJson={vi.fn(() => "[]")}
-        onShareExport={vi.fn()}
         onImportJson={vi.fn()}
       />
     </MemoryRouter>
@@ -74,12 +73,40 @@ describe("TodoListPage", () => {
   });
 
   it("places the add button on the left of the header (left-handed layout)", () => {
-    renderListPage([]);
-    const addButton = screen.getByTestId("add-button");
-    const header = addButton.parentElement as HTMLElement;
-    expect(header.firstElementChild).toBe(addButton);
-    expect(header.style.justifyContent).toBe("flex-start");
-  });
+      renderListPage([]);
+      const addButton = screen.getByTestId("add-button");
+      const header = addButton.parentElement as HTMLElement;
+      expect(header.firstElementChild).toBe(addButton);
+      expect(header.style.justifyContent).toBe("space-between");
+    });
+
+    it("renders Export and Import buttons in the header (right-aligned)", () => {
+        renderListPage([]);
+        const exportButton = screen.getByText("Export");
+        const importButton = screen.getByText("Import");
+        const header = exportButton.closest('[style*="space-between"]');
+        expect(header).toBeDefined();
+        // Verify they are in the right-aligned container (Export first, Import second, file input is last but hidden)
+        const rightContainer = exportButton.parentElement;
+        expect(rightContainer).toBeDefined();
+        expect(rightContainer?.firstElementChild).toBe(exportButton);
+        // Import is second child (file input is last but hidden via display: none)
+        expect(rightContainer?.children[1]).toBe(importButton);
+      });
+
+    it("does not render a Share button", () => {
+      renderListPage([]);
+      expect(screen.queryByText("Share")).toBeNull();
+    });
+
+    it("does not render the toolbar", () => {
+      renderListPage([]);
+      // The old toolbar had backgroundColor YELLOW_MEDIUM and contained the buttons
+      // Now YELLOW_MEDIUM is only used in the headerRightStyle (right container)
+      const yellowMediumElements = document.querySelectorAll('[style*="rgb(255, 241, 118)"]');
+      // Should only have the header right container, not a separate toolbar
+      expect(yellowMediumElements.length).toBeLessThanOrEqual(1);
+    });
 
   it("shows loading message when loading=true", () => {
     renderListPage([], true);

@@ -152,14 +152,21 @@ export function TodoEditPage({ exec }: TodoEditPageProps): JSX.Element {
   // Wire @capacitor/app hardware back button (Android only, guard for web)
   useEffect(() => {
     let removeListener: (() => void) | undefined;
+    let mounted = true;
 
     void (async () => {
       try {
         // Dynamic import — only in this file (plan constraint)
         const { App: CapApp } = await import("@capacitor/app");
+        if (!mounted) return;
         const handle = await CapApp.addListener("backButton", () => {
           void navigate(-1);
         });
+        if (!mounted) {
+          // Unmounted while registering — drop the orphan listener immediately
+          void handle.remove();
+          return;
+        }
         removeListener = () => { void handle.remove(); };
       } catch {
         // Not running in Capacitor WebView — ignore
@@ -167,6 +174,7 @@ export function TodoEditPage({ exec }: TodoEditPageProps): JSX.Element {
     })();
 
     return () => {
+      mounted = false;
       removeListener?.();
     };
   }, [navigate]);

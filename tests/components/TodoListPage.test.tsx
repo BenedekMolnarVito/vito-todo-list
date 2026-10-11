@@ -12,9 +12,10 @@
  * Tests import vitest explicitly (globals: false).
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { TodoListPage } from "../../src/components/TodoListPage.js";
+import { App as CapAppMock } from "../../src/__mocks__/@capacitor/app.js";
 import type { Todo } from "../../src/models/Todo.js";
 
 // Cleanup DOM after each test (globals:false — auto-cleanup won't fire)
@@ -37,8 +38,8 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
   };
 }
 
-function renderListPage(todos: Todo[], loading = false): void {
-  render(
+function renderListPage(todos: Todo[], loading = false) {
+  return render(
     <MemoryRouter>
       <TodoListPage
         todos={todos}
@@ -173,5 +174,54 @@ describe("TodoListPage", () => {
     ];
     renderListPage(todos);
     expect(screen.getByText(/Due: Dec 25/)).toBeDefined();
+  });
+
+  it("hardware back on the main list exits the app", async () => {
+    // Capture the backButton callback the page registers, then fire it:
+    // the app must exit (not walk WebView history / do nothing).
+    const backCallbacks: Array<(...args: unknown[]) => void> = [];
+    const addSpy = vi
+      .spyOn(CapAppMock, "addListener")
+      .mockImplementation(async (_event: string, cb: (...args: unknown[]) => void) => {
+        backCallbacks.push(cb);
+        return { remove: () => undefined };
+      });
+    const exitSpy = vi.spyOn(CapAppMock, "exitApp").mockResolvedValue(undefined);
+
+    try {
+      renderListPage([]);
+      // Wait for the effect's dynamic import + addListener (no fixed sleep —
+      // waitFor polls, so this stays robust under CI load).
+      await waitFor(() => {
+        expect(addSpy).toHaveBeenCalledWith("backButton", expect.any(Function));
+      });
+      expect(backCallbacks).toHaveLength(1);
+
+      await act(async () => {
+        backCallbacks[0]?.();
+      });
+      expect(exitSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      addSpy.mockRestore();
+      exitSpy.mockRestore();
+    }
+  });
+
+  it("removes the backButton listener on unmount", async () => {
+    const removeFn = vi.fn();
+    const addSpy = vi
+      .spyOn(CapAppMock, "addListener")
+      .mockResolvedValue({ remove: removeFn });
+
+    try {
+      const { unmount } = renderListPage([]);
+      await waitFor(() => {
+        expect(addSpy).toHaveBeenCalledWith("backButton", expect.any(Function));
+      });
+      unmount();
+      expect(removeFn).toHaveBeenCalledTimes(1);
+    } finally {
+      addSpy.mockRestore();
+    }
   });
 });

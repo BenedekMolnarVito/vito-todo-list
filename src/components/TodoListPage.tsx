@@ -10,7 +10,7 @@
  * Export/import controls are rendered in the page header alongside the add
  * button (add on the left, export/import right-aligned on the right).
  */
-import { useState, useRef, type ChangeEvent, type CSSProperties } from "react";
+import { useState, useRef, useEffect, type ChangeEvent, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DndContext,
@@ -159,6 +159,40 @@ export function TodoListPage({
   const dragStartOrderRef = useRef<number[] | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Wire @capacitor/app hardware back button: on the main list route the
+  // system Back gesture/button must EXIT the app (without this it walks
+  // WebView history or does nothing). Scoped to this route via
+  // mount/unmount — mirrors TodoEditPage (which navigates back instead) —
+  // so the two handlers never fire together.
+  useEffect(() => {
+    let removeListener: (() => void) | undefined;
+    let mounted = true;
+
+    void (async () => {
+      try {
+        // Dynamic import — @capacitor/app stays out of the static bundle graph
+        const { App: CapApp } = await import("@capacitor/app");
+        if (!mounted) return;
+        const handle = await CapApp.addListener("backButton", () => {
+          void CapApp.exitApp();
+        });
+        if (!mounted) {
+          // Unmounted while registering — drop the orphan listener immediately
+          void handle.remove();
+          return;
+        }
+        removeListener = () => { void handle.remove(); };
+      } catch {
+        // Not running in Capacitor WebView — ignore
+      }
+    })();
+
+    return () => {
+      mounted = false;
+      removeListener?.();
+    };
+  }, []);
 
   // -------------------------------------------------------------------------
   // DnD sensors — BUGFIX #3: long-press to activate drag, tap opens editor

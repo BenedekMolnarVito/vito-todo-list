@@ -202,15 +202,22 @@ export async function deleteTodo(
 // updateOrder
 // Replicates MAUI UpdateOrderAsync:
 //   for each id at index i, set "Order" = i.
+//
+// Written as ONE atomic batch (exec.runBatch → single bridge round-trip in a
+// single native transaction): a reorder can neither partially persist nor be
+// cut off mid-sequence when the app is backgrounded right after the drop.
 // ---------------------------------------------------------------------------
 export async function updateOrder(
   exec: SqliteExecutor,
   idsInOrder: number[]
 ): Promise<void> {
-  for (let i = 0; i < idsInOrder.length; i++) {
-    const id = idsInOrder[i];
-    await exec.run(`UPDATE Todos SET "Order" = ? WHERE Id = ?`, [i, id]);
-  }
+  if (idsInOrder.length === 0) return;
+  await exec.runBatch(
+    idsInOrder.map((id, i) => ({
+      sql: `UPDATE Todos SET "Order" = ? WHERE Id = ?`,
+      params: [i, id],
+    }))
+  );
 }
 
 // ---------------------------------------------------------------------------

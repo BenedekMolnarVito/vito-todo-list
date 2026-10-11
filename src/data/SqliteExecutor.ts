@@ -21,6 +21,14 @@ export interface SqliteExecutor {
   ): Promise<{ lastId: number; changes: number }>;
 
   /**
+   * Execute a batch of write statements (INSERT / UPDATE / DELETE) as ONE
+   * atomic unit in a single bridge round-trip. Used by updateOrder so a
+   * reorder can neither partially persist nor be interrupted mid-sequence
+   * (e.g. app backgrounded between statements).
+   */
+  runBatch(statements: { sql: string; params?: unknown[] }[]): Promise<void>;
+
+  /**
    * Execute a SELECT query and return rows typed as T.
    * Column names come back exactly as written in the SQL (alias them if needed).
    */

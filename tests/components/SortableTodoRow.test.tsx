@@ -15,7 +15,7 @@ import { DndContext } from "@dnd-kit/core";
 import { SortableContext } from "@dnd-kit/sortable";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SortableTodoRow } from "../../src/components/SortableTodoRow.js";
-import { computeReorderIdSequence } from "../../src/components/TodoListPage.js";
+import { hasOrderChanged } from "../../src/components/TodoListPage.js";
 import type { Todo } from "../../src/models/Todo.js";
 
 // Cleanup DOM after each test (globals:false — auto-cleanup won't fire)
@@ -220,31 +220,26 @@ describe("DnD onDragEnd → updateOrder id-sequence mapping (BUGFIX #3)", () => 
     expect(reordered.map((t) => t.id)).toEqual([1, 2]);
   });
 
-  it("onDragEnd handler produces correct id sequence (real computeReorderIdSequence)", () => {
-    // Exercises the ACTUAL handleDragEnd decision logic, imported from
-    // TodoListPage — not a re-implementation. A regression in the real guard
-    // or mapping would fail this test.
+  it("onDragEnd persists when the drop moves the row, even over itself (real hasOrderChanged)", () => {
+    // REGRESSION: the list live-reorders during onDragOver, so at drop time
+    // the dragged row sits under the pointer (over.id === active.id is the
+    // NORMAL outcome of a successful move, not a no-op). The old guard
+    // compared active vs over ids and swallowed ~every real drop, so the
+    // order silently reverted on the next reload. The decision must compare
+    // the drag-START snapshot against the drop-time sequence instead.
 
-    // Simulated state after live-reorder during drag (onDragOver already ran)
-    const localTodosAfterDrag: Todo[] = [
-      makeTodo({ id: 2, order: 0 }),
-      makeTodo({ id: 3, order: 1 }),
-      makeTodo({ id: 1, order: 2 }),
-    ];
-
-    // active=1 dropped on 3 → persists the already-reordered local id sequence
-    const result = computeReorderIdSequence(1, 3, localTodosAfterDrag);
-    expect(result).toEqual([2, 3, 1]);
+    // Drag row 1 (of [1,2,3]) to the end: live-reordered local order is
+    // [2,3,1] with the pointer over row 1 itself → must STILL persist.
+    expect(hasOrderChanged([1, 2, 3], [2, 3, 1])).toBe(true);
   });
 
-  it("onDragEnd no-op guard: same-position drop / no target returns null (real handler)", () => {
-    // Regression for the handleDragEnd no-op guard, exercised via the real
-    // exported computeReorderIdSequence: dropping a row where it started
-    // (active.id === over.id) or with no drop target must return null so the
-    // caller skips onReorder (no redundant UPDATE "Order" writes / reload).
-    const localTodos: Todo[] = [makeTodo({ id: 1 }), makeTodo({ id: 2 })];
-
-    expect(computeReorderIdSequence(1, 1, localTodos)).toBeNull(); // dropped on itself
-    expect(computeReorderIdSequence(1, null, localTodos)).toBeNull(); // no drop target
+  it("onDragEnd no-op guard: unchanged sequence skips onReorder (real handler)", () => {
+    // Same-position drop (or drop with no movement): drag-start snapshot
+    // equals the drop-time sequence → no persist (no redundant UPDATE
+    // "Order" writes / reload).
+    expect(hasOrderChanged([1, 2], [1, 2])).toBe(false);
+    // Different lengths (add/remove mid-drag) → persist to be safe.
+    expect(hasOrderChanged([1, 2], [1, 2, 3])).toBe(true);
+    expect(hasOrderChanged([1, 2, 3], [1, 3])).toBe(true);
   });
 });

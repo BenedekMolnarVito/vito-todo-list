@@ -11,4 +11,5 @@ export const App = {
     return { remove: () => undefined };
   },
   removeAllListeners: async (): Promise<void> => undefined,
+  exitApp: async (): Promise<void> => undefined,
 };

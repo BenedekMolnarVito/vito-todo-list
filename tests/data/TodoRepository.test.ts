@@ -166,6 +166,28 @@ describe("updateOrder", () => {
     expect(todos[1]?.id).toBe(id2);
     expect(todos[2]?.id).toBe(id3);
   });
+
+  it("updateOrder is atomic: a failing statement rolls back the whole batch", async () => {
+    const id1 = await addTodo(exec, makeTodoInput({ title: "A" }));
+    const id2 = await addTodo(exec, makeTodoInput({ title: "B" }));
+
+    // Second statement targets a nonexistent table → the batch must reject
+    // AND the first statement's write must be rolled back (no partial order).
+    await expect(
+      exec.runBatch([
+        { sql: `UPDATE Todos SET "Order" = ? WHERE Id = ?`, params: [5, id1] },
+        { sql: `UPDATE NoSuchTable SET "Order" = ? WHERE Id = ?`, params: [6, id2] },
+      ])
+    ).rejects.toThrow();
+
+    expect((await getTodoById(exec, id1))?.order).not.toBe(5);
+    expect((await getTodoById(exec, id2))?.order).not.toBe(6);
+  });
+
+  it("updateOrder with an empty sequence is a no-op", async () => {
+    await addTodo(exec, makeTodoInput({ title: "A" }));
+    await expect(updateOrder(exec, [])).resolves.toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -40,6 +40,20 @@ export function createNodeExecutor(): {
       return Promise.resolve(rows);
     },
 
+    async runBatch(statements: { sql: string; params?: unknown[] }[]): Promise<void> {
+      // Atomic via better-sqlite3 transaction: all-or-nothing, mirroring the
+      // on-device executeSet semantics. Async (not sync-throwing) so a bad
+      // statement rejects, matching every other SqliteExecutor method.
+      const apply = db.transaction(
+        (stmts: { sql: string; params?: unknown[] }[]): void => {
+          for (const s of stmts) {
+            db.prepare(s.sql).run(s.params ?? []);
+          }
+        }
+      );
+      apply(statements);
+    },
+
     execute(sql: string): Promise<void> {
       db.exec(sql);
       return Promise.resolve();

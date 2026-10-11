@@ -303,6 +303,54 @@ describe("useTodos", () => {
     expect(arr[0]?.title).toBe("Export me");
   });
 
+  it("exportAndShare with share plugin → Share sheet gets the JSON as text", async () => {
+    const shareCalls: Array<{ title?: string; text?: string; dialogTitle?: string }> = [];
+    const share = {
+      share: async (opts: { title?: string; text?: string; dialogTitle?: string }): Promise<void> => {
+        shareCalls.push(opts);
+      },
+    };
+    const { result } = renderHook(() => useTodos({ exec, share }));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    await act(async () => {
+      await result.current.add({ title: "Shared todo" });
+    });
+
+    const expected = result.current.exportJson();
+    await act(async () => {
+      await result.current.exportAndShare();
+    });
+
+    expect(shareCalls).toHaveLength(1);
+    expect(shareCalls[0]?.title).toBe("Export Todos");
+    expect(shareCalls[0]?.text).toBe(expected);
+  });
+
+  it("exportAndShare with failing share plugin → resolves without throwing", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const share = {
+      share: async (): Promise<void> => {
+        throw new Error("share unavailable");
+      },
+    };
+    const { result } = renderHook(() => useTodos({ exec, share }));
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    await act(async () => {
+      await result.current.exportAndShare();
+    });
+
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it("importJson(validJson) → returns true + todos re-inserted in original order", async () => {
     const { result } = renderHook(() => useTodos({ exec }));
 

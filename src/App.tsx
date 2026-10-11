@@ -23,12 +23,13 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
+import { Share } from "@capacitor/share";
 import { CapacitorSQLite, SQLiteConnection } from "@capacitor-community/sqlite";
 import { DB_NAME, initDatabase } from "./data/DatabaseService.js";
 import type { SqliteExecutor } from "./data/SqliteExecutor.js";
 import { TodoListPage } from "./components/TodoListPage.js";
 import { TodoEditPage } from "./components/TodoEditPage.js";
-import { useTodos } from "./hooks/useTodos.js";
+import { useTodos, type SharePlugin } from "./hooks/useTodos.js";
 import { YELLOW_BACKGROUND } from "./components/TodoRow.js";
 
 // ---------------------------------------------------------------------------
@@ -137,15 +138,22 @@ interface TodoListWrapperProps {
 }
 
 function TodoListWrapper({ exec }: TodoListWrapperProps): JSX.Element {
+  const isNative = Capacitor.isNativePlatform();
+
+  const useTodosOptions = {
+    exec,
+    ...(isNative ? { share: Share as SharePlugin } : {}),
+  };
+
   const {
     todos,
     loading,
     toggleComplete,
     remove,
     reorder,
-    exportJson,
+    exportAndShare,
     importJson,
-  } = useTodos({ exec });
+  } = useTodos(useTodosOptions);
 
   return (
     <TodoListPage
@@ -154,7 +162,7 @@ function TodoListWrapper({ exec }: TodoListWrapperProps): JSX.Element {
       onToggleComplete={toggleComplete}
       onRemove={remove}
       onReorder={reorder}
-      onExportJson={exportJson}
+      onExportAndShare={exportAndShare}
       onImportJson={importJson}
     />
   );

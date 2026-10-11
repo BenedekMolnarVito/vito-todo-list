@@ -6,7 +6,7 @@
  *
  * Exposed interface (plan §8 / task-phase3-brief.md):
  *   { todos, loading, add, update, toggleComplete, remove, reorder,
- *     exportJson, importJson }
+ *     exportJson, importJson, exportAndShare }
  */
 import { useState, useEffect, useCallback } from "react";
 import type { SqliteExecutor } from "../data/SqliteExecutor.js";
@@ -29,9 +29,16 @@ import { exportToJson, importFromJson } from "../services/ExportImportService.js
 /** Confirm callback to gate deletions. */
 export type ConfirmFn = (todo: Todo) => Promise<boolean>;
 
+/** Minimal Capacitor Share plugin interface (for testability). */
+export interface SharePlugin {
+  share(options: { title?: string; text?: string; url?: string; dialogTitle?: string }): Promise<unknown>;
+}
+
 export interface UseTodosOptions {
   exec: SqliteExecutor;
   onDatabaseChanged?: () => void;
+  /** Injected on native (Capacitor); undefined on web — enables Share dialog. */
+  share?: SharePlugin;
 }
 
 export interface UseTodosResult {
@@ -44,6 +51,8 @@ export interface UseTodosResult {
   reorder: (newIdOrder: number[]) => Promise<void>;
   exportJson: () => string;
   importJson: (json: string) => Promise<boolean>;
+  /** Platform-aware export: on native opens the Share dialog with JSON text; on web uses anchor-download. */
+  exportAndShare: () => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +61,7 @@ export interface UseTodosResult {
 export function useTodos({
   exec,
   onDatabaseChanged,
+  share,
 }: UseTodosOptions): UseTodosResult {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -168,14 +178,48 @@ export function useTodos({
   );
 
   // -------------------------------------------------------------------------
-  // exportJson — pure; no share involved
-  // -------------------------------------------------------------------------
-  const exportJson = useCallback((): string => {
-    return exportToJson(todos);
-  }, [todos]);
+    // exportJson — pure; no share involved
+    // -------------------------------------------------------------------------
+    const exportJson = useCallback((): string => {
+      return exportToJson(todos);
+    }, [todos]);
 
-  // -------------------------------------------------------------------------
-  // importJson
+    // -------------------------------------------------------------------------
+    // exportAndShare — platform-aware export
+    //   • Native (Capacitor): Share sheet with the JSON as text (no file
+    //     write — Filesystem DOWNLOADS writes fail on Android WebView)
+    //   • Web: anchor-download fallback (current behaviour)
+    // -------------------------------------------------------------------------
+    const exportAndShare = useCallback(async (): Promise<void> => {
+      const json = exportToJson(todos);
+      const filename = `todos_export_${Date.now()}.json`;
+
+      // Native path: Share sheet with JSON text
+      if (share) {
+        try {
+          await share.share({
+            title: "Export Todos",
+            text: json,
+            dialogTitle: "Share exported todos",
+          });
+        } catch (err) {
+          console.warn("Native share failed:", err);
+        }
+        return;
+      }
+
+      // Web fallback: anchor-download
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, [todos, share]);
+
+    // -------------------------------------------------------------------------
+    // importJson
   // importFromJson already reverses the list; caller (this hook) must
   // addTodo each in array order so they land top-to-bottom in original order
   // (§12.4).
@@ -198,14 +242,15 @@ export function useTodos({
   );
 
   return {
-    todos,
-    loading,
-    add,
-    update,
-    toggleComplete,
-    remove,
-    reorder,
-    exportJson,
-    importJson,
-  };
+      todos,
+      loading,
+      add,
+      update,
+      toggleComplete,
+      remove,
+      reorder,
+      exportJson,
+      importJson,
+      exportAndShare,
+    };
   }

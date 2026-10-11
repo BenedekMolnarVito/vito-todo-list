@@ -47,7 +47,7 @@ export interface TodoListPageProps {
   onToggleComplete: UseTodosResult["toggleComplete"];
   onRemove: UseTodosResult["remove"];
   onReorder: UseTodosResult["reorder"];
-  onExportJson: UseTodosResult["exportJson"];
+  onExportAndShare: UseTodosResult["exportAndShare"];
   onImportJson: UseTodosResult["importJson"];
 }
 
@@ -149,7 +149,7 @@ export function TodoListPage({
   onToggleComplete,
   onRemove,
   onReorder,
-  onExportJson,
+  onExportAndShare,
   onImportJson,
 }: TodoListPageProps): JSX.Element {
   const navigate = useNavigate();
@@ -252,22 +252,13 @@ export function TodoListPage({
           +
         </button>
         <div style={headerRightStyle}>
-          <button
-            style={headerButtonStyle}
-            onClick={() => {
-              const json = onExportJson();
-              const blob = new Blob([json], { type: "application/json" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `todos_export_${Date.now()}.json`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            aria-label="Export todos as JSON"
-          >
-            Export
-          </button>
+                  <button
+                    style={headerButtonStyle}
+                    onClick={() => { void onExportAndShare(); }}
+                    aria-label="Export todos as JSON"
+                  >
+                    Export
+                  </button>
           <button
             style={headerButtonStyle}
             onClick={handleImportClick}

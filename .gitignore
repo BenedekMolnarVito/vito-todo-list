@@ -89,6 +89,10 @@ node_modules/
 dist/
 android/app/build/
 .gradle/
+
+# Python cache (Maestro harness)
+__pycache__/
+*.pyc
 # Sensitive real user export (never commit). The test *fixture*
 # tests/fixtures/legacy-maui-export.sample.json IS committed on purpose.
 docs/todos_export_*.json

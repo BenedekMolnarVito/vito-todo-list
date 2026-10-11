@@ -73,6 +73,18 @@ async function createDeviceExecutor(): Promise<SqliteExecutor> {
       const res = await db.query(sql, params as (string | number | null)[] | undefined);
       return (res.values ?? []) as T[];
     },
+    async runBatch(statements: { sql: string; params?: unknown[] }[]): Promise<void> {
+      if (statements.length === 0) return;
+      // ONE bridge round-trip, ONE native transaction: all-or-nothing, and
+      // immune to the app being backgrounded mid-sequence.
+      await db.executeSet(
+        statements.map((s) => ({
+          statement: s.sql,
+          values: (s.params ?? []) as (string | number | null)[],
+        })),
+        true
+      );
+    },
   };
 
   return exec;
@@ -112,6 +124,9 @@ function createWebShimExecutor(): SqliteExecutor {
       void sql;
       void params;
       return [];
+    },
+    async runBatch(statements: { sql: string; params?: unknown[] }[]): Promise<void> {
+      void statements;
     },
   };
 

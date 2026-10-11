@@ -18,9 +18,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
   type DragOverEvent,
-  type UniqueIdentifier,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -52,28 +50,22 @@ export interface TodoListPageProps {
 }
 
 // ---------------------------------------------------------------------------
-// computeReorderIdSequence — pure onDragEnd decision logic (BUGFIX #3).
+// hasOrderChanged — pure onDragEnd decision logic (reorder-persist bugfix).
 //
-// Extracted from handleDragEnd so it can be unit-tested directly (the component
-// handler just calls this), rather than a test re-implementing the guard inline.
+// The list live-reorders during handleDragOver (arrayMove on state), so at
+// drop time the dragged row sits UNDER the pointer: `over.id === active.id`
+// is the NORMAL outcome of a successful move, not a no-op. The old guard
+// (active.id === over.id → skip) therefore swallowed ~every real drop and
+// the order silently reverted on the next reload (app restart, widget cold
+// start, edit-back remount).
 //
-//   - Returns null  → no-op: no drop target, or dropped on itself (same id).
-//     A same-position drop must NOT fire onReorder (would issue N redundant
-//     UPDATE "Order" writes + a full reload for zero change).
-//   - Returns the id sequence of `localTodos` otherwise. localTodos is already
-//     live-reordered during handleDragOver, so its current id order IS the
-//     final order to persist.
-//
-// activeId / overId are dnd-kit UniqueIdentifiers (string | number); todo ids
-// are numbers, so the returned sequence is number[].
+// Correct no-op test: compare the id sequence from drag START (snapshot in
+// handleDragStart) against the sequence at drop. Identical → nothing moved,
+// skip onReorder (no redundant UPDATE "Order" writes + reload).
 // ---------------------------------------------------------------------------
-export function computeReorderIdSequence(
-  activeId: UniqueIdentifier,
-  overId: UniqueIdentifier | null,
-  localTodos: Todo[]
-): number[] | null {
-  if (overId === null || activeId === overId) return null;
-  return localTodos.map((t) => t.id);
+export function hasOrderChanged(beforeIds: number[], afterIds: number[]): boolean {
+  if (beforeIds.length !== afterIds.length) return true;
+  return beforeIds.some((id, i) => id !== afterIds[i]);
 }
 
 // ---------------------------------------------------------------------------
@@ -161,6 +153,10 @@ export function TodoListPage({
     prevTodosRef.current = todos;
     setLocalTodos(todos);
   }
+  // Id order snapshot at drag start — the basis for the drop-time no-op check
+  // (see hasOrderChanged). A ref (not state) so reading it in handleDragEnd
+  // never goes stale.
+  const dragStartOrderRef = useRef<number[] | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -198,23 +194,25 @@ export function TodoListPage({
     });
   }
 
-  function handleDragEnd(event: DragEndEvent): void {
-    const { active, over } = event;
-    // Delegate the pure decision to computeReorderIdSequence (exported +
-    // unit-tested): it returns null for a no-op (no over / same-position drop)
-    // and the final id order otherwise. Without the no-op guard, dropping a row
-    // where it started still fires onReorder → N redundant UPDATE "Order"
-    // statements + a full reload for zero change. handleDragOver already guards
-    // the same case for the live-reorder path.
-    const newIdOrder = computeReorderIdSequence(
-      active.id,
-      over?.id ?? null,
-      localTodos
-    );
-    if (newIdOrder === null) return;
+  function handleDragStart(): void {
+    dragStartOrderRef.current = localTodos.map((t) => t.id);
+  }
+
+  function handleDragEnd(): void {
+    // localTodos is already live-reordered by handleDragOver, so its current
+    // id order IS the final order to persist — no `over` needed. Persist iff
+    // it differs from the drag-start snapshot (same-position drops skip the
+    // N UPDATE "Order" writes + reload for zero change). The .catch keeps a
+    // failed persist visible in logcat instead of a silent revert on reload.
+    const afterIds = localTodos.map((t) => t.id);
+    const beforeIds = dragStartOrderRef.current;
+    dragStartOrderRef.current = null;
+    if (beforeIds === null || !hasOrderChanged(beforeIds, afterIds)) return;
 
     // Persist via useTodos.reorder
-    void onReorder(newIdOrder);
+    void onReorder(afterIds).catch((err: unknown) => {
+      console.error("[TodoListPage] reorder persist failed:", err);
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -283,6 +281,7 @@ export function TodoListPage({
       ) : (
         <DndContext
           sensors={sensors}
+          onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
           autoScroll={true}

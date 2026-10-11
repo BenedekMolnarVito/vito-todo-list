@@ -108,6 +108,40 @@ callFunctionOn-inside-recv-loop deadlocks on console flood).
 - Pre-existing dirt from previous session (cdp.py/harness.py/smoke_out/*,
   389 modified at session start) untouched.
 
+## RESOLUTION (2026-10-11, branch feat/bugfix/persist-reorder — VERIFIED ON DEVICE)
+
+Two independent mechanisms, both fixed:
+
+1. **Drop-time guard swallowed ~every real drop** (the dominant bug).
+   The list live-reorders during `handleDragOver`, so at drop the dragged
+   row sits under the pointer — `over.id === active.id` is the NORMAL
+   outcome of a successful move, not a no-op. The old guard
+   (`computeReorderIdSequence`: over null/self → skip) therefore never
+   called `updateOrder`; the UI kept showing `localTodos` until any reload
+   (restart, widget cold start, edit-back remount) reverted it. Proven on
+   emulator: 3 synthetic touch drags changed the DOM, DB untouched, zero
+   page errors. Fix: snapshot the id order on drag start, persist iff the
+   drop-time order differs (`hasOrderChanged`); `over` is no longer
+   consulted. `void onReorder(...)` also gained a `.catch` → console.error
+   so future persist failures scream in logcat instead of silently reverting.
+
+2. **N sequential `run()` writes are fragile on the bridge** (fix candidate
+   #3 above was right). `updateOrder` now uses a new atomic
+   `SqliteExecutor.runBatch` → single `executeSet` call in one native
+   transaction (its own commit path, no lastId gate): all-or-nothing, one
+   bridge round-trip, immune to backgrounding mid-sequence. Node (tests)
+   and web-shim executors implement the same contract.
+
+Evidence (emulator Pixel_6_Pro, debug APK):
+- Drag first→last: DOM [4,3,2,1,5]→[3,2,1,5,4]; DB file (+WAL) reads back
+  identical, contiguous Order 0..4, zero page errors.
+- `am force-stop` + relaunch: DOM still [3,2,1,5,4].
+- Edit-save path inspected: UPDATE overlays title/desc/deadline on the
+  loaded row, preserves `order` — edit-back revert was symptom of (1), not
+  a second bug.
+- Gate: `tsc` clean, `vite build` ok, `npm run test` 122 passed + 1 skipped
+  (new: hasOrderChanged regression tests, runBatch atomicity + empty tests).
+
 ## Scratch scripts (TMPDIR = C:\Users\molna\AppData\Local\hermes\cache\scratch)
 
 diag_reorder_persist.py (e2e repro+DB pull) · probe_run_tx.py (raw tx probe, KEY)

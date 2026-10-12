@@ -26,6 +26,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import type { UseTodosResult } from "../hooks/useTodos.js";
+import { useScrollRestoration, captureScrollY } from "../hooks/useScrollRestoration.js";
 import type { Todo } from "../models/Todo.js";
 import { SortableTodoRow } from "./SortableTodoRow.js";
 import { SwipeToDelete } from "./SwipeToDelete.js";
@@ -153,6 +154,11 @@ export function TodoListPage({
     prevTodosRef.current = todos;
     setLocalTodos(todos);
   }
+  // Preserve the window scroll offset across the edit/add round-trip: this
+  // route swap unmounts/remounts the whole page (App.tsx sibling Routes), so
+  // save scrollY on unmount and restore it ONCE after real rows are on
+  // screen — not while loading, not on an empty list (no scroll height).
+  useScrollRestoration(!loading && localTodos.length > 0);
   // Id order snapshot at drag start — the basis for the drop-time no-op check
   // (see hasOrderChanged). A ref (not state) so reading it in handleDragEnd
   // never goes stale.
@@ -250,6 +256,21 @@ export function TodoListPage({
   }
 
   // -------------------------------------------------------------------------
+  // Scroll-preserving navigation: capture the window offset BEFORE navigate()
+  // swaps the route — after the swap the short editor page clamps scrollY, so
+  // a later (unmount-cleanup) read would save the clamped value instead.
+  // -------------------------------------------------------------------------
+  function handleAddClick(): void {
+    captureScrollY();
+    void navigate("/add");
+  }
+
+  function handleEditTodo(id: number): void {
+    captureScrollY();
+    void navigate(`/edit/${id}`);
+  }
+
+  // -------------------------------------------------------------------------
   // Import
   // -------------------------------------------------------------------------
   function handleImportClick(): void {
@@ -278,7 +299,7 @@ export function TodoListPage({
         <button
           data-testid="add-button"
           style={addButtonStyle}
-          onClick={() => { void navigate("/add"); }}
+          onClick={() => { handleAddClick(); }}
           aria-label="Add todo"
         >
           +
@@ -335,7 +356,7 @@ export function TodoListPage({
                     <SortableTodoRow
                       todo={todo}
                       onToggleComplete={(id) => { void onToggleComplete(id); }}
-                      onEdit={(id) => { void navigate(`/edit/${id}`); }}
+                      onEdit={(id) => { handleEditTodo(id); }}
                     />
                   </SwipeToDelete>
                 </li>

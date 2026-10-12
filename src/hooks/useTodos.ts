@@ -198,7 +198,7 @@ export function useTodos({
       if (share) {
         try {
           await share.share({
-            title: "Export Todos",
+            title: filename,
             text: json,
             dialogTitle: "Share exported todos",
           });

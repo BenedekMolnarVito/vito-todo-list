@@ -11,10 +11,11 @@
  *
  * Tests import vitest explicitly (globals: false).
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, cleanup, act, waitFor, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Routes, Route, useNavigate } from "react-router-dom";
 import { TodoListPage } from "../../src/components/TodoListPage.js";
+import { __resetScrollRestorationForTests } from "../../src/hooks/useScrollRestoration.js";
 import { App as CapAppMock } from "../../src/__mocks__/@capacitor/app.js";
 import type { Todo } from "../../src/models/Todo.js";
 
@@ -47,7 +48,7 @@ function renderListPage(todos: Todo[], loading = false) {
         onToggleComplete={vi.fn()}
         onRemove={vi.fn()}
         onReorder={vi.fn()}
-        onExportJson={vi.fn(() => "[]")}
+        onExportAndShare={vi.fn()}
         onImportJson={vi.fn()}
       />
     </MemoryRouter>
@@ -223,5 +224,270 @@ describe("TodoListPage", () => {
     } finally {
       addSpy.mockRestore();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scroll restoration (keep list scroll position when returning from edit/add)
+//
+// jsdom quirks: window.scrollTo is NOT implemented → spy-stub it; window
+// .scrollY is a read-only getter → override via Object.defineProperty; the
+// restore is scheduled in requestAnimationFrame → flush a frame inside act().
+// ---------------------------------------------------------------------------
+function setScrollY(y: number): void {
+  Object.defineProperty(window, "scrollY", {
+    value: y,
+    configurable: true,
+    writable: true,
+  });
+}
+
+async function flushFrame(): Promise<void> {
+  await act(async () => {
+    await new Promise<null>((resolve) => {
+      requestAnimationFrame(() => resolve(null));
+    });
+  });
+}
+
+function listProps(todos: Todo[], loading: boolean) {
+  return {
+    todos,
+    loading,
+    onToggleComplete: vi.fn(),
+    onRemove: vi.fn(),
+    onReorder: vi.fn(),
+    onExportAndShare: vi.fn(),
+    onImportJson: vi.fn(),
+  };
+}
+
+describe("TodoListPage scroll restoration", () => {
+  let scrollToSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    __resetScrollRestorationForTests();
+    setScrollY(0);
+    scrollToSpy = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Save `y` by mounting the loaded list at that offset and unmounting it —
+   * the exact path navigation to /edit/:id or /add takes. */
+  function seedSaved(y: number): void {
+    setScrollY(y);
+    const { unmount } = render(
+      <MemoryRouter>
+        <TodoListPage {...listProps([makeTodo({ id: 1 })], false)} />
+      </MemoryRouter>
+    );
+    unmount();
+    scrollToSpy.mockClear();
+  }
+
+  it("saves scrollY on unmount and restores it once on remount with rows loaded", async () => {
+    seedSaved(600);
+    setScrollY(0);
+
+    render(
+      <MemoryRouter>
+        <TodoListPage
+          {...listProps([makeTodo({ id: 1, title: "A" }), makeTodo({ id: 2, title: "B" })], false)}
+        />
+      </MemoryRouter>
+    );
+    await flushFrame();
+
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 600);
+  });
+
+  it("does not restore while loading=true; restores exactly once when rows render", async () => {
+    seedSaved(600);
+    setScrollY(0);
+    const todos = [makeTodo({ id: 1, title: "A" })];
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <TodoListPage {...listProps(todos, true)} />
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).not.toHaveBeenCalled();
+
+    // Async load completes → loading=false with rows present.
+    rerender(
+      <MemoryRouter>
+        <TodoListPage {...listProps(todos, false)} />
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 600);
+  });
+
+  it("fresh mount with no saved value never calls scrollTo (cold start stays at top)", async () => {
+    setScrollY(600); // window happens to be scrolled, but nothing was saved
+
+    render(
+      <MemoryRouter>
+        <TodoListPage {...listProps([makeTodo({ id: 1 })], false)} />
+      </MemoryRouter>
+    );
+    await flushFrame();
+
+    expect(scrollToSpy).not.toHaveBeenCalled();
+  });
+
+  it("idempotent: re-renders with changed todos after a restore do not snap back", async () => {
+    seedSaved(600);
+    setScrollY(0);
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <TodoListPage {...listProps([makeTodo({ id: 1 }), makeTodo({ id: 2 })], false)} />
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+
+    // User scrolls on, then a delete arrives (new todos array) after a brief
+    // loading flip — ready true→false→true. Must NOT re-scroll to 600.
+    setScrollY(120);
+    rerender(
+      <MemoryRouter>
+        <TodoListPage {...listProps([makeTodo({ id: 1 })], true)} />
+      </MemoryRouter>
+    );
+    rerender(
+      <MemoryRouter>
+        <TodoListPage {...listProps([makeTodo({ id: 1 })], false)} />
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores after a full /add → navigate(-1) round trip through the router", async () => {
+    // Mirrors App.tsx's sibling Routes: navigating away UNMOUNTS the list.
+    function AddStub(): JSX.Element {
+      const navigate = useNavigate();
+      return (
+        <button data-testid="add-stub-back" onClick={() => navigate(-1)}>
+          back
+        </button>
+      );
+    }
+
+    setScrollY(600);
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={<TodoListPage {...listProps([makeTodo({ id: 1 })], false)} />}
+          />
+          <Route path="/add" element={<AddStub />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).not.toHaveBeenCalled(); // cold start — nothing saved
+
+    // Tap + → navigate("/add") → list unmounts → scrollY saved.
+    fireEvent.click(screen.getByTestId("add-button"));
+    setScrollY(0); // "on the add page" the window is at the top
+
+    // Hardware back / cancel from the add page → navigate(-1) → list remounts.
+    fireEvent.click(screen.getByTestId("add-stub-back"));
+    await flushFrame();
+
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 600);
+  });
+
+  it("restores after a full row-tap /edit/:id → navigate(-1) round trip through the router", async () => {
+    function EditStub({ id }: { id: string }): JSX.Element {
+      const navigate = useNavigate();
+      return (
+        <button data-testid="edit-stub-back" onClick={() => navigate(-1)}>
+          edit {id}
+        </button>
+      );
+    }
+
+    setScrollY(450);
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={<TodoListPage {...listProps([makeTodo({ id: 7, title: "Tap me" })], false)} />}
+          />
+          <Route path="/edit/:id" element={<EditStub id="x" />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).not.toHaveBeenCalled();
+
+    // Tap the row → navigate("/edit/7") → list unmounts → scrollY saved.
+    fireEvent.click(screen.getByTestId("todo-row-7"));
+    setScrollY(0);
+
+    // Save on the edit page → navigate(-1) → list remounts with rows.
+    fireEvent.click(screen.getByTestId("edit-stub-back"));
+    await flushFrame();
+
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 450);
+  });
+
+  it("gesture capture survives a clamped editor offset on the /add round trip", async () => {
+    // Wired-path check for handleAddClick → captureScrollY() BEFORE
+    // navigate("/add"): the + tap captures 800, the short editor page then
+    // clamps the live offset to 16 (the on-device failure value), and the
+    // return trip must still restore 800 — not 16.
+    // NOTE: jsdom has no layout/clamping, so the clamp is applied manually
+    // here; the layout-vs-passive timing itself is only gated on-device
+    // (S6a/S6b).
+    function AddStub(): JSX.Element {
+      const navigate = useNavigate();
+      return (
+        <button data-testid="add-stub-back" onClick={() => navigate(-1)}>
+          back
+        </button>
+      );
+    }
+
+    setScrollY(800);
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={<TodoListPage {...listProps([makeTodo({ id: 1 })], false)} />}
+          />
+          <Route path="/add" element={<AddStub />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await flushFrame();
+    expect(scrollToSpy).not.toHaveBeenCalled(); // cold start — nothing saved
+
+    // Tap + → captureScrollY(800) → navigate("/add") → list unmounts.
+    fireEvent.click(screen.getByTestId("add-button"));
+    // "On the add page" the short document clamps the live window offset.
+    setScrollY(16);
+
+    // Back from the add page → navigate(-1) → list remounts with rows.
+    fireEvent.click(screen.getByTestId("add-stub-back"));
+    await flushFrame();
+
+    expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    expect(scrollToSpy).toHaveBeenCalledWith(0, 800);
   });
 });

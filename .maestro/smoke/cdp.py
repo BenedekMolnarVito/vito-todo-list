@@ -7,7 +7,8 @@ Adapted from treasury-scribe/.maestro/smoke/cdp.py.
 Pure code, no model calls. Re-resolves the WebView devtools socket on every
 call (the socket PID changes when the WebView respawns) and forwards it to a
 local port. Exposes: extract_dom, eval_js, tap_text, tap_testid, set_input,
-press_key, reveal_swipe_delete, launch, nav helpers.
+press_key, reveal_swipe_delete, launch, nav helpers. eval_js is also exposed
+directly as a scenario nav op (`js_eval`) for scroll/markers/measurements.
 
 CRITICAL GOTCHAS (android-webview-jev-testing skill):
   1. HOST CHROME HOLDS :9222 — desktop Chrome binds 127.0.0.1:9222 and you get
@@ -21,7 +22,7 @@ CRITICAL GOTCHAS (android-webview-jev-testing skill):
 
 App package: app.servimus.vitotodolist
 """
-import asyncio, json, os, subprocess, time, sys
+import asyncio, json, os, re, subprocess, time, sys
 import websockets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -54,19 +55,60 @@ def adb(cmd: str) -> str:
 
 
 def live_ws() -> str:
-    """Re-resolve the current WebView CDP socket, forward it, return page WS url."""
-    _adb("adb forward --remove-all 2>/dev/null >/dev/null")
-    sock = _adb(
-        "adb shell cat /proc/net/unix | grep -oE 'webview_devtools_remote_[0-9]+' | head -1"
-    ).strip()
-    if not sock:
-        raise RuntimeError("No WebView devtools socket. Is the app foregrounded (debug build)?")
-    _adb(f"adb forward tcp:{LOCAL_PORT} localabstract:{sock} >/dev/null")
-    listing = _adb(f"curl -s -m5 http://127.0.0.1:{LOCAL_PORT}/json/list")
-    pages = [t for t in json.loads(listing) if t.get("type") == "page"]
-    if not pages:
-        raise RuntimeError("No CDP page target found.")
-    return pages[0]["webSocketDebuggerUrl"]
+    """Re-resolve the app's WebView CDP socket, forward it, return page WS url.
+
+    Three Windows/AVD hazards this pins down (skill gotchas 2 + 2b):
+      * Socket PID changes whenever the WebView respawns -> re-resolve EVERY call.
+      * OTHER apps' WebViews hold stale `webview_devtools_remote_<pid>` sockets;
+        taking the first match attaches CDP to the WRONG app (proven: a leaked
+        treasury-scribe WebView hijacked every call). So we resolve OUR app's PID
+        via pidof and take ONLY the socket carrying that exact PID.
+      * Right after a cold start / pm clear the socket is listed in
+        /proc/net/unix BEFORE the devtools HTTP endpoint answers -> `curl`
+        returns empty. Retry (re-resolving pid each attempt — it may die and
+        respawn between tries) with a bound.
+    Shell-agnostic: regex match in PYTHON — the Windows `_adb` path runs cmd.exe,
+    where `grep`/`head`/POSIX redirects don't exist, and WSL bash has no adb.
+    """
+    last = None
+    for attempt in range(8):
+        _adb("adb forward --remove-all")  # stale local forwards hijack targets
+        pid_out = _adb(f"adb shell pidof {APP_ID}").strip()
+        pid = pid_out.split()[0] if pid_out else ""
+        unix = _adb("adb shell cat /proc/net/unix")
+        all_socks = sorted(set(re.findall(r"webview_devtools_remote_\d+", unix or "")))
+        if not pid:
+            # NEVER fall back to "some" socket: with our app down, ANY other
+            # webview_devtools_remote_* belongs to another app (proven: reads
+            # silently came from a leaked treasury-scribe WebView). Retry —
+            # the app may be mid-respawn.
+            last = f"{APP_ID} NOT RUNNING (pidof empty); sockets present: {all_socks or 'none'}"
+            time.sleep(1.5)
+            continue
+        want = f"webview_devtools_remote_{pid}"
+        socks = [s for s in all_socks if s == want]
+        if not socks:
+            last = (f"No WebView devtools socket for {APP_ID} (pid={pid}); "
+                    f"sockets present: {all_socks or 'none'}")
+            time.sleep(1.5)
+            continue
+        _adb(f"adb forward tcp:{LOCAL_PORT} localabstract:{socks[0]}")
+        listing = _adb(f"curl -s -m5 http://127.0.0.1:{LOCAL_PORT}/json/list")
+        try:
+            targets = json.loads(listing)
+        except (json.JSONDecodeError, TypeError):
+            last = (f"CDP /json/list on port {LOCAL_PORT} via {socks[0]} "
+                    f"(app pid={pid}) returned no JSON: {listing[:120]!r} "
+                    "— WebView devtools endpoint not answering (frozen process?)")
+            time.sleep(1.5)
+            continue
+        pages = [t for t in targets if t.get("type") == "page"]
+        if not pages:
+            last = f"No CDP page target found (targets: {[t.get('type') for t in targets]})"
+            time.sleep(1.5)
+            continue
+        return pages[0]["webSocketDebuggerUrl"]
+    raise RuntimeError(f"live_ws failed after 8 attempts: {last}")
 
 
 async def _eval(expr: str):
@@ -131,6 +173,19 @@ def tap_testid(testid: str) -> bool:
     js = (
         "(()=>{const el=document.querySelector('[data-testid=\"' + %s + '\"]');"
         "if(!el)return false;el.click();return true;})()" % json.dumps(testid)
+    )
+    return bool(eval_js(js))
+
+
+def tap_testid_prefix(prefix: str) -> bool:
+    """Click the FIRST visible-order element whose data-testid starts with prefix.
+
+    Needed for dynamic ids (`todo-row-<id>`) where the exact testid is unknown at
+    scenario-authoring time. querySelector returns document-order first match, so
+    on the list page this taps the TOP row."""
+    js = (
+        "(()=>{const el=document.querySelector('[data-testid^=\"' + %s + '\"]');"
+        "if(!el)return false;el.click();return true;})()" % json.dumps(prefix)
     )
     return bool(eval_js(js))
 
@@ -352,8 +407,10 @@ def press_key(keyevent: str) -> None:
 
 
 def launch() -> None:
-    """Launch the app and wait for it to be in foreground."""
-    _adb(f"adb shell am start -n {MAIN_ACTIVITY} >/dev/null 2>&1")
+    """Launch the app and wait for it to be in foreground.
+    No POSIX redirects: this runs through cmd.exe on Windows, where
+    `>/dev/null` breaks the WHOLE command (am start silently never happens)."""
+    _adb(f"adb shell am start -n {MAIN_ACTIVITY}")
 
 
 def device_online() -> bool:

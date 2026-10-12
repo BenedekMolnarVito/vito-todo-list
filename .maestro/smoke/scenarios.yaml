@@ -21,6 +21,14 @@
 #       dismiss_perms                -> press Back up to 3x to clear OS perm screens
 #       tap_text: "<label>"          -> click smallest element whose text == label
 #       tap_testid: "<testid>"       -> click [data-testid=...]
+#       tap_testid_prefix: "<pfx>"   -> DOM-click the FIRST [data-testid^=...] element
+#                                        (document order). For dynamic ids: "todo-row-"
+#                                        taps the TOP row even when scrolled (programmatic
+#                                        click ignores on-screen visibility).
+#       js_eval: "<expr>"            -> run arbitrary JS in the page: scroll the window,
+#                                        stash window.__markers (survive SPA route swaps;
+#                                        die only on reload). Value discarded — stash what
+#                                        you need on window and read it in code_assert.
 #       set_input: {field, value}    -> set a React input by placeholder/aria-label/testid
 #       press_key: "<KEYCODE>"       -> Android system key (e.g. KEYCODE_BACK)
 #       sleep: <seconds>             -> settle animation/navigation
@@ -35,7 +43,9 @@
 #       reload_app:               -> force-stop + relaunch (re-reads SQLite), settle s
 #   code_assert: HARD checks (all must pass):
 #       url_endswith / url_contains, testid_present[], testid_absent[], text_present[],
-#       min_interactive, js: {expr, equals},
+#       min_interactive, js: {expr, equals[, diag]},   # diag: optional read-only expr
+#           evaluated ONLY when the js assert fails -> its value is embedded in the
+#           failure string (report.json) for triage. Never a gate.
 #       computed_style: {el:"<js->element|null>", prop, contains|equals}  (one or a list),
 #       nav_assert: [{key:"a.b", equals|equals_key|not_equals_key|truthy}]  (reads nav_state)
 #   jev_assert: [{id, question, true, false}] — ADVISORY unless jev_gating: true.
@@ -53,12 +63,40 @@ settings:
   app_id: "app.servimus.vitotodolist"
 
 # Seed data: created via the Add screen before the run (deterministic order:
-# newest at TOP, so DOM order after seeding is Third, Second, First).
+# newest at TOP, so DOM order after seeding is the reverse of this list).
+# 25 rows on purpose: the AVD viewport is ~802 CSS px and rows render ~73 px
+# (measured on emulator-5554: listTop ~83), so >= 25 rows put the document's
+# max scroll past 800 px — S6 needs `window.scrollTo(0, 800)` to apply
+# un-clamped and the list to be genuinely scrolled (> 200).
+# Count-tolerant gates unaffected: S1 (new todo is FIRST row), S3 (>= 3 rows +
+# order persistence), S4 (count drops by one) — all re-verified after re-seeding.
 seed:
   todos:
     - {title: "First todo"}
     - {title: "Second todo"}
     - {title: "Third todo"}
+    - {title: "Seed todo 04"}
+    - {title: "Seed todo 05"}
+    - {title: "Seed todo 06"}
+    - {title: "Seed todo 07"}
+    - {title: "Seed todo 08"}
+    - {title: "Seed todo 09"}
+    - {title: "Seed todo 10"}
+    - {title: "Seed todo 11"}
+    - {title: "Seed todo 12"}
+    - {title: "Seed todo 13"}
+    - {title: "Seed todo 14"}
+    - {title: "Seed todo 15"}
+    - {title: "Seed todo 16"}
+    - {title: "Seed todo 17"}
+    - {title: "Seed todo 18"}
+    - {title: "Seed todo 19"}
+    - {title: "Seed todo 20"}
+    - {title: "Seed todo 21"}
+    - {title: "Seed todo 22"}
+    - {title: "Seed todo 23"}
+    - {title: "Seed todo 24"}
+    - {title: "Seed todo 25"}
 
 scenarios:
 
@@ -212,3 +250,111 @@ scenarios:
     kind: vitest
     vitest_files:
       - "tests/services/ExportImportService.test.ts"
+
+  # ---------------------------------------------------------------------------
+  # S6a: scroll preservation on the CANCEL path (fix under test:
+  # useScrollRestoration — save window.scrollY on list unmount, restore ONCE
+  # after rows render). False-pass trap #1 closed by __editVisited: if the row
+  # tap never opened the editor, scroll was never lost and the gate would pass
+  # vacuously. Markers live on window: they survive the SPA route swap
+  # (pushState) and die only on a real reload — none happens here.
+  # ON-DEVICE FINDINGS (emulator-5554 / Chrome-124 WebView, both APKs verified
+  # by unzipping assets/public JS from the installed APK):
+  #  * PRE-FIX APK (bundle has NO hook — only dnd-kit object-style scrollTo):
+  #    this scenario PASSED anyway — the WebView's same-document traversal
+  #    restoration kept scrollY=800 across edit->cancel (rows re-render from the
+  #    warm SQLite ConnectionPool in <150ms, so the document never clamps).
+  #  * FIXED APK (bundle contains `requestAnimationFrame(()=>{window.scrollTo(0,i)})`):
+  #    scenario FAILED deterministically: scrollY lands at 16 — the CLAMPED
+  #    scroll offset of the editor page (docH 818 - viewport 802 = 16). Suspected
+  #    root cause: the passive unmount cleanup (useScrollRestoration.ts:49-51)
+  #    reads window.scrollY only AFTER the editor route has committed and
+  #    clamped the real offset, so savedScrollY captures 16; the rAF restore
+  #    then scrolls faithfully to 16 and also preempts the native restoration
+  #    that the pre-fix build relied on. Unit tests mock scrollY and cannot
+  #    observe this layout race (S6c passes green while S6a/S6b fail on-device).
+  #  => S6a/S6b are the deterministic on-device gate for the fix's REAL effect;
+  #     at time of writing they FAIL the working-tree fix (honest red).
+  # ---------------------------------------------------------------------------
+  - id: S6a_scroll_preserved_cancel_back
+    feature: "Deep scroll -> open row editor -> CANCEL -> scrollY restored (+-5px)"
+    nav:
+      - {js_eval: "window.scrollTo(0, 800); window.__scrollBeforeEdit = window.scrollY; true"}
+      - {tap_testid_prefix: "todo-row-"}
+      - {sleep: 2}
+      - {js_eval: "window.__editVisited = location.pathname.startsWith('/edit/'); true"}
+      - {tap_testid: cancel-button}
+      - {sleep: 2.5}
+    code_assert:
+      testid_present: [todo-list-page, todo-list]
+      js:
+        expr: >
+          (window.__editVisited === true) &&
+          (window.__scrollBeforeEdit > 200) &&
+          (Math.abs(window.scrollY - window.__scrollBeforeEdit) <= 5)
+        equals: true
+        diag: >
+          (()=>({editVisited:window.__editVisited, before:window.__scrollBeforeEdit,
+                 scrollY:window.scrollY, pathname:location.pathname,
+                 rows:document.querySelectorAll('[data-testid^="todo-row-"]').length}))()
+    jev_assert:
+      - id: returned_to_long_list
+        question: "Is the todo list page shown with several todo rows (the app returned from the editor without crashing or emptying the list)?"
+        true: "The list page shows multiple todo rows"
+        false: "The list is missing, empty, or an error screen is shown"
+
+  # ---------------------------------------------------------------------------
+  # S6b: scroll preservation on the SAVE path — the edge case. Saving reloads
+  # todos from SQLite AFTER the restore (extra re-renders + a todos prop
+  # identity swap); the once-per-mount latch must forbid a late re-restore.
+  # Proven in two stages because the single js-gate evaluates after nav ends:
+  #   1) the restore gate is STASHED on window the moment the list settles
+  #      post-save (scrollY back at the pre-edit offset, +-5px);
+  #   2) nav then forces window.scrollTo(0,0) and settles 2s; the HARD gate
+  #      demands stashed-restore-ok AND scrollY === 0 — a delayed double
+  #      restore would have snapped back to ~800 and failed the second clause.
+  # (Harness js-assert is one expression per scenario; stashing keeps both
+  #  stages deterministic code_asserts, no model in the loop.)
+  # ---------------------------------------------------------------------------
+  - id: S6b_scroll_preserved_save_back
+    feature: "Deep scroll -> edit row -> SAVE -> scrollY restored, then NO snap-back"
+    nav:
+      - {js_eval: "window.scrollTo(0, 800); window.__scrollBeforeEdit = window.scrollY; true"}
+      - {tap_testid_prefix: "todo-row-"}
+      - {sleep: 2}
+      - {js_eval: "window.__editVisited = location.pathname.startsWith('/edit/'); true"}
+      - {tap_testid: save-button}
+      - {sleep: 2.5}
+      - {js_eval: "window.__s6bRestoreOk = (window.__editVisited === true) && (window.__scrollBeforeEdit > 200) && (Math.abs(window.scrollY - window.__scrollBeforeEdit) <= 5); true"}
+      - {js_eval: "window.scrollTo(0, 0); true"}
+      - {sleep: 2}
+    code_assert:
+      testid_present: [todo-list-page, todo-list]
+      js:
+        expr: "window.__s6bRestoreOk === true && window.scrollY === 0"
+        equals: true
+        diag: >
+          (()=>({restoreOk:window.__s6bRestoreOk, editVisited:window.__editVisited,
+                 before:window.__scrollBeforeEdit, scrollY:window.scrollY,
+                 pathname:location.pathname}))()
+    jev_assert:
+      - id: saved_back_to_long_list
+        question: "Is the todo list page shown with several todo rows (the app saved an edit and returned to the list without crashing)?"
+        true: "The list page shows multiple todo rows"
+        false: "The list is missing, empty, or an error screen is shown"
+
+  # ---------------------------------------------------------------------------
+  # S6c: useScrollRestoration hook + TodoListPage wiring — unit-level evidence
+  # that the hook's LOGIC is implemented per spec (save-on-unmount, once-per-
+  # mount latch, ready-gating, no restore on cold start). NOTE: these tests mock
+  # window.scrollY, so they pass even while S6a/S6b fail on-device — the layout
+  # race that destroys the saved offset (see S6a ON-DEVICE FINDINGS) is only
+  # observable in the real WebView. Keep both layers; do not read S6c green as
+  # proof the feature works on device.
+  # ---------------------------------------------------------------------------
+  - id: S6c_scroll_restoration_unit
+    feature: "useScrollRestoration hook + list wiring (unit gate for the fix itself)"
+    kind: vitest
+    vitest_files:
+      - "tests/hooks/useScrollRestoration.test.tsx"
+      - "tests/components/TodoListPage.test.tsx"

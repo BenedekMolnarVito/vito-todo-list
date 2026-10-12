@@ -1,0 +1,8 @@
+PROGRESS 1/8 — S1_add_todo_appears_top — PASS
+PROGRESS 2/8 — S2_toggle_complete_strikethrough — PASS
+PROGRESS 3/8 — S3_reorder_persists — PASS
+PROGRESS 4/8 — S4_swipe_delete — PASS
+PROGRESS 5/8 — S5_export_import_roundtrip — PASS
+PROGRESS 6/8 — S6a_scroll_preserved_cancel_back — PASS
+PROGRESS 7/8 — S6b_scroll_preserved_save_back — PASS
+PROGRESS 8/8 — S6c_scroll_restoration_unit — PASS

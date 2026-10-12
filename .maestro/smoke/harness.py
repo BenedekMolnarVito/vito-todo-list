@@ -66,6 +66,17 @@ def run_nav(steps, default_sleep):
                 cdp.tap_text(arg)
             elif op == "tap_testid":
                 cdp.tap_testid(arg)
+            elif op == "tap_testid_prefix":
+                # DOM-click the first element whose data-testid starts with the
+                # prefix — for dynamic ids like `todo-row-<id>` (top row = first
+                # in document order). Returns bool; scenario asserts catch misses.
+                cdp.tap_testid_prefix(str(arg))
+            elif op == "js_eval":
+                # Run arbitrary JS in the page (scroll, stash window.__markers
+                # that survive route swaps; they die only on a real reload).
+                # The expression's value is discarded here; scenarios that need
+                # its result stash it on window and read it back in code_assert.
+                cdp.eval_js(str(arg))
             elif op == "press_key":
                 cdp.press_key(arg)
             elif op == "set_input":
@@ -140,7 +151,16 @@ def run_code_asserts(spec, dom, nav_state=None):
         got = cdp.eval_js(spec["js"]["expr"])
         want = spec["js"]["equals"]
         if got != want:
-            fails.append(f"js assert got {got!r} != {want!r}")
+            # `diag`: optional read-only expression evaluated ONLY on failure, so
+            # report.json carries the real numbers (scrollY, markers, counts) that
+            # made the compound gate false — no re-run needed to triage. Not a gate.
+            extra = ""
+            if "diag" in spec["js"]:
+                try:
+                    extra = f" diag={cdp.eval_js(spec['js']['diag'])!r}"
+                except Exception as e:
+                    extra = f" diag_error={e!r}"
+            fails.append(f"js assert got {got!r} != {want!r}{extra}")
     # computed_style: assert a CSS computed property on an element matched by a JS expr.
     #   computed_style: {el: "<js expr -> element|null>", prop: "text-decoration-line",
     #                    contains: "line-through"}  (or equals: "...")
@@ -230,9 +250,17 @@ def seed_all(seed_spec):
 # vitest shell-out for non-UI paths
 # ---------------------------------------------------------------------------
 def run_vitest(files):
-    """Run the Node test suite for paths the emulator UI can't drive."""
-    cmd = f'[ -f "{ENV_SH}" ] && source "{ENV_SH}"; npx vitest run ' + " ".join(files)
-    r = subprocess.run(["bash", "-c", cmd], cwd=REPO, capture_output=True, text=True)
+    """Run the Node test suite for paths the emulator UI can't drive.
+
+    Windows: run via cmd.exe. subprocess(['bash',...]) resolves to SYSTEM32
+    WSL bash there (skill gotcha), which has none of the repo's Node/adb PATH.
+    """
+    if os.name == "nt":
+        cmd = "npx vitest run " + " ".join(files)
+        r = subprocess.run(cmd, cwd=REPO, capture_output=True, text=True, shell=True)
+    else:
+        cmd = f'[ -f "{ENV_SH}" ] && source "{ENV_SH}"; npx vitest run ' + " ".join(files)
+        r = subprocess.run(["bash", "-c", cmd], cwd=REPO, capture_output=True, text=True)
     tail = (r.stdout + r.stderr).strip().splitlines()[-15:]
     passed = r.returncode == 0
     return passed, "\n".join(tail)
@@ -243,6 +271,22 @@ def run_vitest(files):
 # ---------------------------------------------------------------------------
 def rebuild_apk():
     log("  rebuilding APK (npm build -> cap sync -> gradle assembleDebug)...")
+    if os.name == "nt":
+        # cmd.exe: needs node/npm/npx/adb on PATH and a real JAVA_HOME (JDK 21).
+        # NOTE: `cd android` persists in cmd (no subshell), so install from the
+        # ABSOLUTE apk path.
+        apk = os.path.join(REPO, "android", "app", "build", "outputs", "apk",
+                           "debug", "app-debug.apk")
+        cmd = (
+            f'cd /d "{REPO}" && npm run build --legacy-peer-deps && '
+            "npx cap sync android && "
+            "cd android && gradlew.bat assembleDebug && "
+            f'adb install -r -g "{apk}"'
+        )
+        r = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+        ok = "Success" in r.stdout or r.returncode == 0
+        log("  rebuild " + ("OK" if ok else "FAILED:\n" + r.stdout[-1500:] + r.stderr[-1500:]))
+        return ok
     cmd = (
         f'source "{ENV_SH}"; cd "{REPO}" && '
         "npm run build --legacy-peer-deps >/dev/null 2>&1 && "
@@ -357,7 +401,12 @@ def main():
 
         if args.fresh:
             log(f"  clearing app state (adb pm clear {cdp.APP_ID})...")
-            cdp.adb(f"adb shell pm clear {cdp.APP_ID} >/dev/null 2>&1")
+            # NO POSIX redirects here: on Windows cdp.adb runs cmd.exe, where
+            # `>/dev/null` silently breaks the whole command (pm clear no-ops ->
+            # a frozen backgrounded WebView keeps a zombie devtools socket).
+            # _adb already captures stdout/stderr.
+            cdp.adb(f"adb shell pm clear {cdp.APP_ID}")
+            time.sleep(2)
 
         cdp.launch(); time.sleep(default_sleep)
         # Dismiss any permission/overlay screens
@@ -368,8 +417,14 @@ def main():
         if not args.no_seed:
             seed_all(spec.get("seed", {}))
 
+    # PROGRESS ledger: one line per completed scenario, stdout AND file, so a
+    # tail -f shows live progress. Truncated at run start (fresh ledger each run).
+    progress_path = os.path.join(OUT, "PROGRESS")
+    open(progress_path, "w").close()
+    total = len(scenarios)
+
     results = []
-    for sc in scenarios:
+    for idx, sc in enumerate(scenarios, 1):
         log(f"\n=== {sc['id']} — {sc.get('feature', '')} ===")
         try:
             if sc.get("kind") == "vitest":
@@ -391,6 +446,11 @@ def main():
         if r.get("jev_fails"): extra += f" jev_fails={r['jev_fails']}"
         if r.get("error"): extra += f" error={r['error']}"
         log(f"[{r['verdict']:7}] {sc['id']}{extra}")
+        # live progress line (user standard): stdout + appended file
+        prog = f"PROGRESS {idx}/{total} — {sc['id']} — {r['verdict']}"
+        log(prog)
+        with open(progress_path, "a", encoding="utf-8") as pf:
+            pf.write(prog + "\n")
 
     report_path = os.path.join(OUT, "report.json")
     with open(report_path, "w") as f:

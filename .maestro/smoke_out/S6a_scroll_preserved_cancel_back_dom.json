@@ -1,0 +1,1196 @@
+{
+  "title": "VitoTodoList",
+  "url": "https://localhost/",
+  "count": 103,
+  "els": [
+    {
+      "i": 0,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": "add-button",
+      "text": "+",
+      "box": [
+        44,
+        -754
+      ]
+    },
+    {
+      "i": 1,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": null,
+      "text": "Export",
+      "box": [
+        271,
+        -754
+      ]
+    },
+    {
+      "i": 2,
+      "kind": "interactive",
+      "tag": "button",
+      "role": null,
+      "type": null,
+      "testid": null,
+      "text": "Import",
+      "box": [
+        341,
+        -754
+      ]
+    },
+    {
+      "i": 3,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-25",
+      "text": "Delete",
+      "box": [
+        48,
+        -680
+      ]
+    },
+    {
+      "i": 4,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-25",
+      "text": "\u2630",
+      "box": [
+        30,
+        -681
+      ]
+    },
+    {
+      "i": 5,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-25",
+      "text": "on",
+      "box": [
+        65,
+        -681
+      ]
+    },
+    {
+      "i": 6,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-24",
+      "text": "Delete",
+      "box": [
+        48,
+        -608
+      ]
+    },
+    {
+      "i": 7,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-24",
+      "text": "\u2630",
+      "box": [
+        30,
+        -608
+      ]
+    },
+    {
+      "i": 8,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-24",
+      "text": "on",
+      "box": [
+        65,
+        -608
+      ]
+    },
+    {
+      "i": 9,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-23",
+      "text": "Delete",
+      "box": [
+        48,
+        -535
+      ]
+    },
+    {
+      "i": 10,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-23",
+      "text": "\u2630",
+      "box": [
+        30,
+        -535
+      ]
+    },
+    {
+      "i": 11,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-23",
+      "text": "on",
+      "box": [
+        65,
+        -535
+      ]
+    },
+    {
+      "i": 12,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-22",
+      "text": "Delete",
+      "box": [
+        48,
+        -462
+      ]
+    },
+    {
+      "i": 13,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-22",
+      "text": "\u2630",
+      "box": [
+        30,
+        -462
+      ]
+    },
+    {
+      "i": 14,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-22",
+      "text": "on",
+      "box": [
+        65,
+        -462
+      ]
+    },
+    {
+      "i": 15,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-21",
+      "text": "Delete",
+      "box": [
+        48,
+        -389
+      ]
+    },
+    {
+      "i": 16,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-21",
+      "text": "\u2630",
+      "box": [
+        30,
+        -389
+      ]
+    },
+    {
+      "i": 17,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-21",
+      "text": "on",
+      "box": [
+        65,
+        -389
+      ]
+    },
+    {
+      "i": 18,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-20",
+      "text": "Delete",
+      "box": [
+        48,
+        -316
+      ]
+    },
+    {
+      "i": 19,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-20",
+      "text": "\u2630",
+      "box": [
+        30,
+        -317
+      ]
+    },
+    {
+      "i": 20,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-20",
+      "text": "on",
+      "box": [
+        65,
+        -317
+      ]
+    },
+    {
+      "i": 21,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-19",
+      "text": "Delete",
+      "box": [
+        48,
+        -243
+      ]
+    },
+    {
+      "i": 22,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-19",
+      "text": "\u2630",
+      "box": [
+        30,
+        -244
+      ]
+    },
+    {
+      "i": 23,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-19",
+      "text": "on",
+      "box": [
+        65,
+        -244
+      ]
+    },
+    {
+      "i": 24,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-18",
+      "text": "Delete",
+      "box": [
+        48,
+        -170
+      ]
+    },
+    {
+      "i": 25,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-18",
+      "text": "\u2630",
+      "box": [
+        30,
+        -171
+      ]
+    },
+    {
+      "i": 26,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-18",
+      "text": "on",
+      "box": [
+        65,
+        -171
+      ]
+    },
+    {
+      "i": 27,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-17",
+      "text": "Delete",
+      "box": [
+        48,
+        -98
+      ]
+    },
+    {
+      "i": 28,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-17",
+      "text": "\u2630",
+      "box": [
+        30,
+        -98
+      ]
+    },
+    {
+      "i": 29,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-17",
+      "text": "on",
+      "box": [
+        65,
+        -98
+      ]
+    },
+    {
+      "i": 30,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-16",
+      "text": "Delete",
+      "box": [
+        48,
+        -25
+      ]
+    },
+    {
+      "i": 31,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-16",
+      "text": "\u2630",
+      "box": [
+        30,
+        -25
+      ]
+    },
+    {
+      "i": 32,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-16",
+      "text": "on",
+      "box": [
+        65,
+        -25
+      ]
+    },
+    {
+      "i": 33,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-15",
+      "text": "Delete",
+      "box": [
+        48,
+        48
+      ]
+    },
+    {
+      "i": 34,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-15",
+      "text": "\u2630",
+      "box": [
+        30,
+        48
+      ]
+    },
+    {
+      "i": 35,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-15",
+      "text": "on",
+      "box": [
+        65,
+        48
+      ]
+    },
+    {
+      "i": 36,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-14",
+      "text": "Delete",
+      "box": [
+        48,
+        121
+      ]
+    },
+    {
+      "i": 37,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-14",
+      "text": "\u2630",
+      "box": [
+        30,
+        121
+      ]
+    },
+    {
+      "i": 38,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-14",
+      "text": "on",
+      "box": [
+        65,
+        121
+      ]
+    },
+    {
+      "i": 39,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-13",
+      "text": "Delete",
+      "box": [
+        48,
+        194
+      ]
+    },
+    {
+      "i": 40,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-13",
+      "text": "\u2630",
+      "box": [
+        30,
+        193
+      ]
+    },
+    {
+      "i": 41,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-13",
+      "text": "on",
+      "box": [
+        65,
+        193
+      ]
+    },
+    {
+      "i": 42,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-12",
+      "text": "Delete",
+      "box": [
+        48,
+        267
+      ]
+    },
+    {
+      "i": 43,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-12",
+      "text": "\u2630",
+      "box": [
+        30,
+        266
+      ]
+    },
+    {
+      "i": 44,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-12",
+      "text": "on",
+      "box": [
+        65,
+        266
+      ]
+    },
+    {
+      "i": 45,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-11",
+      "text": "Delete",
+      "box": [
+        48,
+        340
+      ]
+    },
+    {
+      "i": 46,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-11",
+      "text": "\u2630",
+      "box": [
+        30,
+        339
+      ]
+    },
+    {
+      "i": 47,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-11",
+      "text": "on",
+      "box": [
+        65,
+        339
+      ]
+    },
+    {
+      "i": 48,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-10",
+      "text": "Delete",
+      "box": [
+        48,
+        412
+      ]
+    },
+    {
+      "i": 49,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-10",
+      "text": "\u2630",
+      "box": [
+        30,
+        412
+      ]
+    },
+    {
+      "i": 50,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-10",
+      "text": "on",
+      "box": [
+        65,
+        412
+      ]
+    },
+    {
+      "i": 51,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-9",
+      "text": "Delete",
+      "box": [
+        48,
+        485
+      ]
+    },
+    {
+      "i": 52,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-9",
+      "text": "\u2630",
+      "box": [
+        30,
+        485
+      ]
+    },
+    {
+      "i": 53,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-9",
+      "text": "on",
+      "box": [
+        65,
+        485
+      ]
+    },
+    {
+      "i": 54,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-8",
+      "text": "Delete",
+      "box": [
+        48,
+        558
+      ]
+    },
+    {
+      "i": 55,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-8",
+      "text": "\u2630",
+      "box": [
+        30,
+        558
+      ]
+    },
+    {
+      "i": 56,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-8",
+      "text": "on",
+      "box": [
+        65,
+        558
+      ]
+    },
+    {
+      "i": 57,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-7",
+      "text": "Delete",
+      "box": [
+        48,
+        631
+      ]
+    },
+    {
+      "i": 58,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-7",
+      "text": "\u2630",
+      "box": [
+        30,
+        631
+      ]
+    },
+    {
+      "i": 59,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-7",
+      "text": "on",
+      "box": [
+        65,
+        631
+      ]
+    },
+    {
+      "i": 60,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-6",
+      "text": "Delete",
+      "box": [
+        48,
+        704
+      ]
+    },
+    {
+      "i": 61,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-6",
+      "text": "\u2630",
+      "box": [
+        30,
+        703
+      ]
+    },
+    {
+      "i": 62,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-6",
+      "text": "on",
+      "box": [
+        65,
+        703
+      ]
+    },
+    {
+      "i": 63,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-5",
+      "text": "Delete",
+      "box": [
+        48,
+        777
+      ]
+    },
+    {
+      "i": 64,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-5",
+      "text": "\u2630",
+      "box": [
+        30,
+        776
+      ]
+    },
+    {
+      "i": 65,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-5",
+      "text": "on",
+      "box": [
+        65,
+        776
+      ]
+    },
+    {
+      "i": 66,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-4",
+      "text": "Delete",
+      "box": [
+        48,
+        850
+      ]
+    },
+    {
+      "i": 67,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-4",
+      "text": "\u2630",
+      "box": [
+        30,
+        849
+      ]
+    },
+    {
+      "i": 68,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-4",
+      "text": "on",
+      "box": [
+        65,
+        849
+      ]
+    },
+    {
+      "i": 69,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-3",
+      "text": "Delete",
+      "box": [
+        48,
+        922
+      ]
+    },
+    {
+      "i": 70,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-3",
+      "text": "\u2630",
+      "box": [
+        30,
+        922
+      ]
+    },
+    {
+      "i": 71,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-3",
+      "text": "on",
+      "box": [
+        65,
+        922
+      ]
+    },
+    {
+      "i": 72,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-2",
+      "text": "Delete",
+      "box": [
+        48,
+        995
+      ]
+    },
+    {
+      "i": 73,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-2",
+      "text": "\u2630",
+      "box": [
+        30,
+        995
+      ]
+    },
+    {
+      "i": 74,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-2",
+      "text": "on",
+      "box": [
+        65,
+        995
+      ]
+    },
+    {
+      "i": 75,
+      "kind": "interactive",
+      "tag": "div",
+      "role": "button",
+      "type": null,
+      "testid": "delete-1",
+      "text": "Delete",
+      "box": [
+        48,
+        1068
+      ]
+    },
+    {
+      "i": 76,
+      "kind": "interactive",
+      "tag": "span",
+      "role": "button",
+      "type": null,
+      "testid": "drag-handle-1",
+      "text": "\u2630",
+      "box": [
+        30,
+        1068
+      ]
+    },
+    {
+      "i": 77,
+      "kind": "interactive",
+      "tag": "input",
+      "role": null,
+      "type": "checkbox",
+      "testid": "checkbox-1",
+      "text": "on",
+      "box": [
+        65,
+        1068
+      ]
+    },
+    {
+      "i": 78,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-25",
+      "text": "Seed todo 25"
+    },
+    {
+      "i": 79,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-24",
+      "text": "Seed todo 24"
+    },
+    {
+      "i": 80,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-23",
+      "text": "Seed todo 23"
+    },
+    {
+      "i": 81,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-22",
+      "text": "Seed todo 22"
+    },
+    {
+      "i": 82,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-21",
+      "text": "Seed todo 21"
+    },
+    {
+      "i": 83,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-20",
+      "text": "Seed todo 20"
+    },
+    {
+      "i": 84,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-19",
+      "text": "Seed todo 19"
+    },
+    {
+      "i": 85,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-18",
+      "text": "Seed todo 18"
+    },
+    {
+      "i": 86,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-17",
+      "text": "Seed todo 17"
+    },
+    {
+      "i": 87,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-16",
+      "text": "Seed todo 16"
+    },
+    {
+      "i": 88,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-15",
+      "text": "Seed todo 15"
+    },
+    {
+      "i": 89,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-14",
+      "text": "Seed todo 14"
+    },
+    {
+      "i": 90,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-13",
+      "text": "Seed todo 13"
+    },
+    {
+      "i": 91,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-12",
+      "text": "Seed todo 12"
+    },
+    {
+      "i": 92,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-11",
+      "text": "Seed todo 11"
+    },
+    {
+      "i": 93,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-10",
+      "text": "Seed todo 10"
+    },
+    {
+      "i": 94,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-9",
+      "text": "Seed todo 09"
+    },
+    {
+      "i": 95,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-8",
+      "text": "Seed todo 08"
+    },
+    {
+      "i": 96,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-7",
+      "text": "Seed todo 07"
+    },
+    {
+      "i": 97,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-6",
+      "text": "Seed todo 06"
+    },
+    {
+      "i": 98,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-5",
+      "text": "Seed todo 05"
+    },
+    {
+      "i": 99,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-4",
+      "text": "Seed todo 04"
+    },
+    {
+      "i": 100,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-3",
+      "text": "Third todo"
+    },
+    {
+      "i": 101,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-2",
+      "text": "Second todo"
+    },
+    {
+      "i": 102,
+      "kind": "text",
+      "tag": "span",
+      "testid": "todo-title-1",
+      "text": "First todo"
+    }
+  ]
+}

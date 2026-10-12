@@ -7,14 +7,12 @@
     "url": "https://localhost/",
     "code_fails": [],
     "jev": {
-      "todo_added_at_top": 0.79
+      "todo_added_at_top": 0.86
     },
-    "jev_fails": [
-      "todo_added_at_top=0.79<0.8"
-    ],
+    "jev_fails": [],
     "jev_gating": false,
     "nav_evidence": {},
-    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S1_add_todo_appears_top_dom.json"
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S1_add_todo_appears_top_dom.json"
   },
   {
     "id": "S2_toggle_complete_strikethrough",
@@ -24,14 +22,14 @@
     "url": "https://localhost/",
     "code_fails": [],
     "jev": {
-      "strikethrough_applied": 0.56
+      "strikethrough_applied": 0.6
     },
     "jev_fails": [
-      "strikethrough_applied=0.56<0.8"
+      "strikethrough_applied=0.60<0.8"
     ],
     "jev_gating": false,
     "nav_evidence": {},
-    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S2_toggle_complete_strikethrough_dom.json"
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S2_toggle_complete_strikethrough_dom.json"
   },
   {
     "id": "S3_reorder_persists",
@@ -47,6 +45,28 @@
     "jev_gating": false,
     "nav_evidence": {
       "order_seed": [
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
         4,
         3,
         2,
@@ -55,12 +75,56 @@
       "reorder_result": {
         "driven": true,
         "before_ids": [
+          26,
+          25,
+          24,
+          23,
+          22,
+          21,
+          20,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
           4,
           3,
           2,
           1
         ],
         "after_ids": [
+          26,
+          25,
+          24,
+          23,
+          22,
+          21,
+          20,
+          19,
+          18,
+          17,
+          16,
+          15,
+          14,
+          13,
+          12,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
           4,
           3,
           2,
@@ -69,19 +133,63 @@
         "changed": false
       },
       "order_after": [
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
         4,
         3,
         2,
         1
       ],
       "order_persisted": [
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
         4,
         3,
         2,
         1
       ]
     },
-    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S3_reorder_persists_dom.json"
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S3_reorder_persists_dom.json"
   },
   {
     "id": "S4_swipe_delete",
@@ -91,14 +199,36 @@
     "url": "https://localhost/",
     "code_fails": [],
     "jev": {
-      "delete_action_present": 0.3
+      "delete_action_present": 0.35
     },
     "jev_fails": [
-      "delete_action_present=0.30<0.8"
+      "delete_action_present=0.35<0.8"
     ],
     "jev_gating": false,
     "nav_evidence": {
       "order_before_delete": [
+        26,
+        25,
+        24,
+        23,
+        22,
+        21,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+        6,
+        5,
         4,
         3,
         2,
@@ -107,36 +237,62 @@
       "delete_result": {
         "clicked": true,
         "row_gone": true,
-        "before_count": 4,
-        "after_count": 3
+        "before_count": 26,
+        "after_count": 25
       },
-      "deleted_id": 4
+      "deleted_id": 26
     },
-    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S4_swipe_delete_dom.json"
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S4_swipe_delete_dom.json"
   },
   {
-    "id": "S5_export_share",
-    "feature": "Tap Share \u2192 native share invoked \u2192 app alive on list (no crash)",
-    "kind": "ui",
-    "verdict": "PASS",
-    "url": "https://localhost/",
-    "code_fails": [],
-    "jev": {
-      "share_invoked_no_crash": 0.8
-    },
-    "jev_fails": [],
-    "jev_gating": false,
-    "nav_evidence": {},
-    "dom_dump": "/Users/C5418860/temp/vito-todo-list/.maestro/smoke/../smoke_out/S5_export_share_dom.json"
-  },
-  {
-    "id": "S5_export_vitest",
+    "id": "S5_export_import_roundtrip",
     "feature": "Export/import JSON round-trip (unit test coverage)",
     "kind": "vitest",
     "verdict": "PASS",
     "vitest_files": [
       "tests/services/ExportImportService.test.ts"
     ],
-    "output_tail": "RUN  v4.1.11 /Users/C5418860/temp/vito-todo-list\n\n\n Test Files  1 passed (1)\n      Tests  21 passed | 1 skipped (22)\n   Start at  15:15:13\n   Duration  511ms (transform 29ms, setup 53ms, import 42ms, tests 6ms, environment 324ms)"
+    "output_tail": "RUN  v4.1.11 C:/Users/molna/VSCodeRepos/vito-todo-list\n\n\n Test Files  1 passed (1)\n      Tests  21 passed | 1 skipped (22)\n   Start at  22:41:03\n   Duration  1.13s (transform 57ms, setup 122ms, import 83ms, tests 9ms, environment 735ms)"
+  },
+  {
+    "id": "S6a_scroll_preserved_cancel_back",
+    "feature": "Deep scroll -> open row editor -> CANCEL -> scrollY restored (+-5px)",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "returned_to_long_list": 0.97
+    },
+    "jev_fails": [],
+    "jev_gating": false,
+    "nav_evidence": {},
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S6a_scroll_preserved_cancel_back_dom.json"
+  },
+  {
+    "id": "S6b_scroll_preserved_save_back",
+    "feature": "Deep scroll -> edit row -> SAVE -> scrollY restored, then NO snap-back",
+    "kind": "ui",
+    "verdict": "PASS",
+    "url": "https://localhost/",
+    "code_fails": [],
+    "jev": {
+      "saved_back_to_long_list": 0.93
+    },
+    "jev_fails": [],
+    "jev_gating": false,
+    "nav_evidence": {},
+    "dom_dump": "C:\\Users\\molna\\VSCodeRepos\\vito-todo-list\\.maestro\\smoke\\..\\smoke_out\\S6b_scroll_preserved_save_back_dom.json"
+  },
+  {
+    "id": "S6c_scroll_restoration_unit",
+    "feature": "useScrollRestoration hook + list wiring (unit gate for the fix itself)",
+    "kind": "vitest",
+    "verdict": "PASS",
+    "vitest_files": [
+      "tests/hooks/useScrollRestoration.test.tsx",
+      "tests/components/TodoListPage.test.tsx"
+    ],
+    "output_tail": "RUN  v4.1.11 C:/Users/molna/VSCodeRepos/vito-todo-list\n\n\n Test Files  2 passed (2)\n      Tests  35 passed (35)\n   Start at  22:41:23\n   Duration  2.27s (transform 199ms, setup 287ms, import 754ms, tests 1.14s, environment 1.55s)"
   }
 ]
